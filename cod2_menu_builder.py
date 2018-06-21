@@ -17,13 +17,12 @@ from PIL 		import Image, ImageTk
 
 import Tkinter as tk
 
-import os
+import os, canvas_element_manager
 
 class Main:
 	def __init__(self):
 		
 		self.initVariables()
-		
 		
 		self.GUIDraw()
 		
@@ -36,7 +35,9 @@ class Main:
 			'ICONimage': 'data/icons/image.png',
 			'ICONblank': 'data/icons/blank.png',
 		
-			'background': 'data/transparent.jpg'
+			'move': 'data/icons/move.png',
+			'moveF': 'data/icons/moveF.png',
+			'background': 'data/transparent.png'
 		}
 		
 		self.canvasElements = {}
@@ -80,20 +81,20 @@ class Main:
 		self.menubar.add_cascade(label="help")
 		self.root.config(menu=self.menubar)
 		
+		self.f2 = LabelFrame(text = 'Canvas')
+		self.f2.grid(row=1, column=0)
+		
+		self.canvas = Canvas(self.f2, width = 640, height = 480)
+		self.elementManager = canvas_element_manager.Manage(self.canvas, self.guiImages)
 		
 		self.f1 = LabelFrame(text = 'Add Element')
 		self.f1.grid(row=0, column=0, sticky = W)
 		
 		self.b0 = Button(self.f1, text = 'Item', image = self.guiImages['ICONblank'], compound="left", width = 7)
-		self.b1 = Button(self.f1, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7)
+		self.b1 = Button(self.f1, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7, command = self.elementManager.createLabelElement )
 		self.b2 = Button(self.f1, text = 'Button', image = self.guiImages['ICONbutton'], compound="left", width = 7)
 		self.b3 = Button(self.f1, text = 'Rect', image = self.guiImages['ICONrectangle'], compound="left", width = 7)
 		self.b4 = Button(self.f1, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7)
-		
-		self.f2 = LabelFrame(text = 'Canvas')
-		self.f2.grid(row=1, column=0)
-		
-		self.canvas = Canvas(self.f2, width = 640, height = 480)
 		
 		self.f3 = LabelFrame(text = 'Properties', width = 240, height = 100)
 		self.f3.grid(row=1, column=1, padx = 5, sticky = N)
@@ -107,6 +108,11 @@ class Main:
 		self.canvas.grid(row=0, column=0)
 		
 		self.coreLoadBackground()
+		
+		self.canvas.bind(' <ButtonPress-1>', self.elementManager.buttonPress)
+		self.canvas.bind(' <ButtonRelease-1>', self.elementManager.buttonRelease)
+		self.canvas.bind(' <B1-Motion>', self.elementManager.buttonMotion)
+		
 		
 		self.root.mainloop()
 		
