@@ -11,6 +11,9 @@ This code has no licence, feel free to do whatever you want with it.
 '''
 
 import cod2_default_element_settings
+import canvas_element_properties
+
+import copy
 
 from Tkinter 	import *
 from ttk		import *
@@ -20,9 +23,11 @@ class Manage:
 		self.elements = {}
 		
 		self.GUI = GUI
-		
 		self.canvas = GUI.canvas
 		self.images = GUI.guiImages
+		
+		self.propertiesManagment = canvas_element_properties.Properties(self)
+		
 		
 		self.settings = {
 			'defaultPos': [640/2, 480/2],
@@ -31,16 +36,19 @@ class Manage:
 		
 		self.selectedElement = -1
 		
+	def loadMenuElement(self):
+		pass
+		
 	def createLabelElement(self):
 		element = {
 			'type': 'label',
 		
-			'properties': cod2_default_element_settings.labelSettings.copy(),
+			'properties': copy.deepcopy(cod2_default_element_settings.labelSettings),
 		
 			'text': 'Example Text',
 			'colour': 'black',
 			'pos': self.settings['defaultPos'][:],
-			'rect': [124,48],
+			'rect': [0,0,124,24],
 			'size': 12,
 			
 			'offsetMoveX': 0,
@@ -62,11 +70,39 @@ class Manage:
 		self.selectElement(elementID)
 		
 	def calculateCords(self, element):
-		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][0],  element['pos'][1]+ element['rect'][1] )
+		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+ element['rect'][3] )
 		self.canvas.coords(element['id'], element['pos'][0],  element['pos'][1] )
-		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][0]/2,  element['pos'][1]+ element['rect'][1]/2)
-		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][0]/2,  element['pos'][1]+ element['rect'][1]/2)
+		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
+		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
 		
+	def updateOnProperty(self):
+		if not self.selectedElement in self.elements:
+			return
+		
+		element = self.elements[self.selectedElement]
+		
+		newValue = element['properties']['text'][2].var.get()
+		if element['text'] != newValue:
+			element['text'] = newValue
+			self.canvas.itemconfigure(element['id'], text = element['text'])
+		
+		newValue = element['properties']['origin'][2].var.get()
+		if str(element['pos'][0]) + " " + str(element['pos'][1]) != newValue:
+			try:
+				element['pos'] = [int(newValue.split(' ')[0]), int(newValue.split(' ')[1])]
+			except:
+				return
+			
+			self.calculateCords(self.elements[self.selectedElement])
+		
+		newValue = element['properties']['rect'][2].var.get()
+		if str(element['rect']).replace('[','').replace(']', '').replace(',','') != newValue:
+			try:
+				element['rect'] = [int(newValue.split(' ')[0]), int(newValue.split(' ')[1]), int(newValue.split(' ')[2]), int(newValue.split(' ')[3])]
+			except:
+				return
+		
+			self.calculateCords(self.elements[self.selectedElement])
 		
 	def buttonPress(self, event):
 		self.selectOnPress(event.x, event.y)
@@ -85,12 +121,12 @@ class Manage:
 		for elementID in self.elements:
 			element = self.elements[elementID]
 			
-			if self.inside(x,y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][0], element['pos'][1]+element['rect'][1])) ):
+			if self.inside(x,y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3])) ):
 				self.selectElement(elementID)
 				return
 	
 		self.disselectElement()
-		self.clearProperties()
+		self.propertiesManagment.clearProperties()
 	
 	def inside(self, x, y, ((ax,ay), (bx,by) ) ):
 		return (x > ax and x < bx) and (y > ay and y < by)
@@ -119,57 +155,19 @@ class Manage:
 		self.calculateCords(self.elements[elementID])
 	
 		if oldSelect != elementID:
-			self.updatePorperties(elementID)
+			self.propertiesManagment.updatePorperties(elementID)
+
+
 	
-	
-	def clearProperties(self):
-		_list = self.GUI.f3.winfo_children()
-	
-		for widget in _list:
-			widget.destroy()
-	
-	def updatePorperties(self, elementID):
-		self.clearProperties()
+	def updatePositionPorperties(self, elementID):
+		widget = self.elements[self.selectedElement]['properties']['origin'][2]
+		value = self.elements[self.selectedElement]['properties']['origin'][0]
 		
-		if not elementID in self.elements:
+		if not widget:
 			return
 	
-		element = self.elements[elementID]
-	
-		row = 0
-		for property in element['properties']:
-			value = element['properties'][property][0]
-			flags = element['properties'][property][1].split('|')
-	
-			Label(self.GUI.f3, text = property+': ').grid(row = row, column = 0, sticky=W)
-	
-			if 'E' in flags:
-				e = Entry(self.GUI.f3)
-				e.grid(row=row,column=1,sticky=W,pady=3)
-				
-			elif 'OM' in flags:
-				values = self.getValues(flags)
-			
-				o = OptionMenu(self.GUI.f3, StringVar(), *values)
-				o.grid(row=row,column=1,sticky=W,pady=3)
-				
-			elif 'CB' in flags:
-				values = self.getValues(flags)
-				
-				o = Combobox(self.GUI.f3)
-				o['values'] = values
-				o.grid(row=row,column=1,sticky=W,pady=3)
-				
-	
-			row += 1
-	
-	def getValues(self, flags):
-		values = []
-		for flag in flags:
-			if flag in cod2_default_element_settings.globalDefinitions:
-				for value in cod2_default_element_settings.globalDefinitions[flag]:
-					values.append(value)
-		return values
+		widget.delete('0', 'end')
+		widget.insert('0', value)
 	
 	def buttonRelease(self, event):
 		if not self.selectedElement in self.elements:
@@ -178,12 +176,21 @@ class Manage:
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveF'], state = 'hidden' )
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['bbox'], outline="Rosy Brown1" )
 		
+	def updatePosiotionValue(self, elementID):
+		if not elementID in self.elements:
+			return	
+	
+		self.elements[elementID]['properties']['origin'][0] = str(self.elements[elementID]['pos'][0]) + " " + str(self.elements[elementID]['pos'][1])
+		self.updatePositionPorperties(elementID)
+		
 	def buttonMotion(self, event):
 		if not self.selectedElement in self.elements:
 			return	
 	
 		self.elements[self.selectedElement]['pos'][0] = event.x - self.elements[self.selectedElement]['offsetMoveX']
 		self.elements[self.selectedElement]['pos'][1] = event.y - self.elements[self.selectedElement]['offsetMoveY']
+		
+		self.updatePosiotionValue(self.selectedElement)
 		
 		self.calculateCords(self.elements[self.selectedElement])
 		

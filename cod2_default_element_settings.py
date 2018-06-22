@@ -11,15 +11,15 @@ This code has no licence, feel free to do whatever you want with it.
 '''
 
 labelSettings = {
-	'name': 		['"label"', 'E|S'],
-	'visible':		['1', 'CB|bool'],
-	'rect':			['0 0 128 24', 'E'],
-	'origin':		['0 0', 'E'],
-	'forecolor':	['1 1 1', 'CB|globalColours'],
-	'type':			['ITEM_TYPE_TEXT', 'L'],
-	'text':			['"Example Text"', 'E|S'],
-	'textfont':		['UI_FONT_NORMAL', 'CB|F|font'],
-	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size'],
+	'name': 		['label', 'E|S', None],
+	'visible':		['MENU_TRUE', 'OM|bool', None],
+	'rect':			['0 0 128 24', 'E', None],
+	'origin':		['0 0', 'E', None],
+	'forecolor':	['1 1 1', 'CB|globalColours', None],
+	'type':			['ITEM_TYPE_TEXT', 'L', None],
+	'text':			['Example Text', 'E|S', None],
+	'textfont':		['UI_FONT_NORMAL', 'CB|F|font', None],
+	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None],
 }
 
 
