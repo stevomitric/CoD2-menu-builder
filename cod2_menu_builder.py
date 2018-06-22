@@ -85,7 +85,7 @@ class Main:
 		self.f2.grid(row=1, column=0)
 		
 		self.canvas = Canvas(self.f2, width = 640, height = 480)
-		self.elementManager = canvas_element_manager.Manage(self.canvas, self.guiImages)
+		self.elementManager = canvas_element_manager.Manage(self)
 		
 		self.f1 = LabelFrame(text = 'Add Element')
 		self.f1.grid(row=0, column=0, sticky = W)
