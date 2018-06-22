@@ -64,7 +64,7 @@ class Main:
 		
 	def GUIDraw(self):
 		self.root = Tk()
-		#self.root.geometry('900x575')
+		self.root.geometry('900x580')
 		self.root.title('Call of Duty 2 Menu Builder - stEvo')
 		
 		self.GUILoadImages()
@@ -88,11 +88,15 @@ class Main:
 		
 		self.menubar.add_cascade(label="Elements")
 		
+		
+		
 		self.menubar.add_cascade(label="help")
 		self.root.config(menu=self.menubar)
 		
 		self.f2 = LabelFrame(self.root, text = 'Menus')
 		self.nb = Notebook(self.f2)
+		
+		self.loadMenuOptions()
 		
 		self.canvas = ''
 		self.elementManager = canvas_element_manager.Manage(self)
@@ -129,11 +133,29 @@ class Main:
 		
 		self.MenuManager.createMenu()
 		
+		self.nb.bind('<<NotebookTabChanged>>', self.newMenuPressed)
+		
 		#self.coreLoadBackground()
 
 		
 		self.root.mainloop()
 		
+	def newMenuPressed(self, event):
+		if not event.widget:
+			pass
+		
+		name = self.nb.tab(self.nb.select(), "text")
+		self.MenuManager.selectMenu( self.MenuManager.identifyMenuBasedOnName(name) )
+		
+	def loadMenuOptions(self):
+		self.menuPopup 		= Menu(self.root, tearoff=0)
+		self.menuPopup.add_command(label="Add new Menu", command = self.MenuManager.createMenu)
+		self.menuPopup.add_command(label="Delete this menu")
+		
+		self.nb.bind("<Button-3>", self.menuPopupEvent)
+		
+	def menuPopupEvent(self, event):
+		self.menuPopup.post(event.x_root, event.y_root)
 		
 	def coreLoadBackground(self):
 		if 'background' in self.canvasElements:
