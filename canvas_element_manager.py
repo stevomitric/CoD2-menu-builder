@@ -69,6 +69,8 @@ class Manage:
 		
 		self.selectElement(elementID)
 		
+		self.propertiesManagment.updateElementList()
+		
 	def calculateCords(self, element):
 		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+ element['rect'][3] )
 		self.canvas.coords(element['id'], element['pos'][0],  element['pos'][1] )
@@ -85,6 +87,7 @@ class Manage:
 		if element['text'] != newValue:
 			element['text'] = newValue
 			self.canvas.itemconfigure(element['id'], text = element['text'])
+			self.propertiesManagment.updateElementList()
 		
 		newValue = element['properties']['origin'][2].var.get()
 		if str(element['pos'][0]) + " " + str(element['pos'][1]) != newValue:
@@ -131,6 +134,12 @@ class Manage:
 	def inside(self, x, y, ((ax,ay), (bx,by) ) ):
 		return (x > ax and x < bx) and (y > ay and y < by)
 	
+	def removeAll(self):
+		self.disselectElement()
+		
+		self.canvas.delete("all")
+		self.elements = {}
+	
 	def disselectElement(self):
 		if not self.selectedElement in self.elements:
 			return
@@ -168,6 +177,15 @@ class Manage:
 	
 		widget.delete('0', 'end')
 		widget.insert('0', value)
+	
+	def listboxSelect(self):
+		try:
+			index = int(self.GUI.lb1.curselection()[0])
+			elementID = int(self.GUI.lb1.get(index).split('(', 1)[1].split(')', 1)[0])
+		except:
+			return
+	
+		self.selectElement(elementID)
 	
 	def buttonRelease(self, event):
 		if not self.selectedElement in self.elements:

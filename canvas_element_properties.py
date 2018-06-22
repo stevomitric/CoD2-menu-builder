@@ -108,8 +108,15 @@ class Properties:
 		return values
 		
 		
+	def updateElementList(self):
+		self.GUI.lb1.delete(0, END)
+		for elementID in self.manage.elements:
+			element = self.manage.elements[elementID]
+			type = element['type']
+			id   = element['id']
+			text = element['text']
 		
-		
+			self.GUI.lb1.insert(END, '('+str(id)+') ' + type + ": " + text)
 		
 		
 		
