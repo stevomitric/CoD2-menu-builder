@@ -20,7 +20,6 @@ class Properties:
 	
 		self.manage= Manage
 		self.GUI = Manage.GUI
-		self.canvas = self.GUI.canvas
 		self.images = self.GUI.guiImages
 		
 		

@@ -64,7 +64,7 @@ class Main:
 		
 	def GUIDraw(self):
 		self.root = Tk()
-		self.root.geometry('900x550')
+		#self.root.geometry('900x575')
 		self.root.title('Call of Duty 2 Menu Builder - stEvo')
 		
 		self.GUILoadImages()
@@ -92,22 +92,22 @@ class Main:
 		self.root.config(menu=self.menubar)
 		
 		self.f2 = LabelFrame(self.root, text = 'Menus')
-		
 		self.nb = Notebook(self.f2)
 		
-		#self.elementManager = canvas_element_manager.Manage(self)
+		self.canvas = ''
+		self.elementManager = canvas_element_manager.Manage(self)
 		
 		self.f11 = LabelFrame(self.root, text = 'Add Element')
 		
 		self.b0 = Button(self.f11, text = 'Item', image = self.guiImages['ICONblank'], compound="left", width = 7)
-		self.b1 = Button(self.f11, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7)#, command = self.elementManager.createLabelElement )
+		self.b1 = Button(self.f11, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7, command = self.elementManager.createLabelElement )
 		self.b2 = Button(self.f11, text = 'Button', image = self.guiImages['ICONbutton'], compound="left", width = 7)
 		self.b3 = Button(self.f11, text = 'Rect', image = self.guiImages['ICONrectangle'], compound="left", width = 7)
 		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7)
 		
 		self.f12 = LabelFrame(self.root, text = 'Tools')
 		
-		self.b5 = Button(self.f12, text = 'Menu', image = self.guiImages['ICONmenu'], compound="left", width = 7)#, command = self.elementManager.loadMenuElement )
+		self.b5 = Button(self.f12, text = 'Menu', image = self.guiImages['ICONmenu'], compound="left", width = 7, command = self.elementManager.loadMenuElement )
 		
 		
 		self.f3 = LabelFrame(self.root, text = 'Properties', width = 240, height = 100)
@@ -123,16 +123,14 @@ class Main:
 		self.b5.grid(row=0, column = 0, padx=3)
 		
 		self.f2.grid(row=1, column=0)
+		self.nb.grid(row=0, column=0)
 		
 		self.f3.grid(row=1, column=1, padx = 5, sticky = (N,W,E,S))
 		
-		#self.coreLoadBackground()
-		
-		#self.canvas.bind(' <ButtonPress-1>', self.elementManager.buttonPress)
-		#self.canvas.bind(' <ButtonRelease-1>', self.elementManager.buttonRelease)
-		#self.canvas.bind(' <B1-Motion>', self.elementManager.buttonMotion)
-		
 		self.MenuManager.createMenu()
+		
+		#self.coreLoadBackground()
+
 		
 		self.root.mainloop()
 		

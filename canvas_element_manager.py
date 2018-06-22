@@ -19,13 +19,13 @@ from Tkinter 	import *
 from ttk		import *
 
 class Manage:
-	def __init__(self, GUI):
-		self.elements = {}
-		
+	def __init__(self, GUI):	
 		self.GUI = GUI
-		self.canvas = GUI.canvas
-		self.images = GUI.guiImages
 		
+		self.elements = {}
+		self.canvas = GUI.canvas
+		
+		self.images = GUI.guiImages
 		self.propertiesManagment = canvas_element_properties.Properties(self)
 		
 		
