@@ -31,6 +31,10 @@ class Properties:
 			widget.destroy()
 			
 	
+	def entryCallbackNonElementProperty(self, property, element):
+		element['properties'][property][0] = element['properties'][property][2].var.get()
+		self.manage.updateOnPropertyNonElement(element)
+	
 	def entryCallback(self, property, elementID):
 		element = self.manage.elements[elementID]
 		
@@ -38,20 +42,35 @@ class Properties:
 	
 		self.manage.updateOnProperty()
 	
-	def updatePorperties(self, elementID):
+	def setBadPropertyOption(self, elementID, property):
+		self.manage.elements[elementID]['properties'][property][3].configure(background = 'red')
+	
+	def setGoodPropertyOption(self, elementID, property):
+		defaultColour = self.GUI.root.cget('bg')
+		self.manage.elements[elementID]['properties'][property][3].configure(background = defaultColour)
+	
+	def updatePorperties(self, elementID = None, nonElementProperty = None):
 		self.clearProperties()
 		
-		if not elementID in self.manage.elements:
+		if elementID == None and nonElementProperty == None:
+			return
+		
+		if not elementID in self.manage.elements and nonElementProperty == None:
 			return
 	
-		element = self.manage.elements[elementID]
+		element = ''
+		if (elementID != None):
+			element = self.manage.elements[elementID]
+		else:
+			element = nonElementProperty
 	
 		row = 0
 		for property in element['properties']:
 			value = element['properties'][property][0]
 			flags = element['properties'][property][1].split('|')
 	
-			Label(self.GUI.f3, text = property+': ').grid(row = row, column = 0, sticky=W)
+			element['properties'][property][3] = Label(self.GUI.f3, text = property+': ')
+			element['properties'][property][3].grid(row = row, column = 0, sticky=W)
 	
 			widget = None
 	
@@ -64,8 +83,8 @@ class Properties:
 				
 				widget.var = var
 				
-				widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID) )
-				
+				if elementID != None: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID) )
+				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element) )
 				
 			elif 'OM' in flags:
 				values = self.getValues(flags)
@@ -76,6 +95,9 @@ class Properties:
 				widget.grid(row=row,column=1,sticky=W,pady=3)
 				
 				widget.var = var
+				
+				if elementID != None: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID) )
+				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element) )
 				
 			elif 'CB' in flags:
 				values = self.getValues(flags)
@@ -89,6 +111,9 @@ class Properties:
 	
 				widget.var = var
 	
+				if elementID != None: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID) )
+				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element) )
+	
 			elif 'L' in flags:
 				widget = Label(self.GUI.f3, text = value)
 				widget.grid(row=row,column=1,sticky=W,pady=3)
@@ -96,7 +121,7 @@ class Properties:
 			element['properties'][property][2] = widget
 	
 			row += 1
-		
+			
 		self.manage.updatePosiotionValue(elementID)
 		
 	def getValues(self, flags):

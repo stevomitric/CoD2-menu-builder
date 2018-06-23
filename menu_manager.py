@@ -15,6 +15,8 @@ from ttk			import *
 
 from tkMessageBox 	import showinfo
 
+import copy, cod2_default_element_settings
+
 class MenuManager:
 	def __init__(self, GUI):
 		self.GUI = GUI
@@ -25,12 +27,18 @@ class MenuManager:
 		
 	def createMenu(self):
 		menu = {
+			'type': 'menu',
+		
 			'frame': Frame(),			
 			'elements': {},
 			'name': 'Menu'+str(self.inx),
 			'background': 'background',
+			
+			'properties': copy.deepcopy(cod2_default_element_settings.menuSettings),
 		}
 		self.inx += 1
+		
+		menu['properties']['name'][0] = menu['name']
 		
 		menu['canvas'] = Canvas(menu['frame'], width = 640, height = 480)
 		menu['canvas'].grid(row=0,column=0)
@@ -46,6 +54,17 @@ class MenuManager:
 		
 		#self.selectMenu(menu)
 
+	def loadMenuProperties(self):
+		self.GUI.elementManager.disselectElement()
+	
+		name = self.GUI.nb.tab(self.GUI.nb.select(), "text")
+		menu = self.identifyMenuBasedOnName(name)
+	
+		self.GUI.elementManager.propertiesManagment.updatePorperties(nonElementProperty = menu)
+	
+	def updateTabName(self, tab, name):
+		self.GUI.nb.tab(tab, text = name)
+	
 	def removeMenu(self, id):
 		if len(self.Menus) <= 1:
 			showinfo('Error 001', 'Cannot delete last Menu.')
@@ -77,8 +96,7 @@ class MenuManager:
 		self.GUI.elementManager.canvas = menu['canvas']
 		self.GUI.elementManager.elements = menu['elements']
 		
-	
-		
+		self.GUI.elementManager.propertiesManagment.updateElementList()
 		
 		
 		

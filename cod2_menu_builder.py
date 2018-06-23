@@ -17,7 +17,7 @@ from PIL 		import Image, ImageTk
 
 import Tkinter as tk
 
-import os, canvas_element_manager, copy, menu_manager
+import os, canvas_element_manager, copy, menu_manager, translator
 
 class Main:
 	def __init__(self):
@@ -74,7 +74,7 @@ class Main:
 		importmenu.add_command(label="Menu file (.menu)")
 		
 		exportmenu 		= Menu(filemenu, tearoff=0)
-		exportmenu.add_command(label="Menu file (.menu)")
+		exportmenu.add_command(label="Menu file (.menu)", command = lambda _='': translator.exportAsMenu(self.MenuManager.Menus) )
 		
 		filemenu.add_cascade(label="Import", menu = importmenu)
 		filemenu.add_cascade(label="Export", menu = exportmenu)
@@ -109,13 +109,13 @@ class Main:
 		
 		self.f12 = LabelFrame(self.root, text = 'Tools')
 		
-		self.b5 = Button(self.f12, text = 'Menu', image = self.guiImages['ICONmenu'], compound="left", width = 7, command = self.elementManager.loadMenuElement )
+		self.b5 = Button(self.f12, text = 'Menu', image = self.guiImages['ICONmenu'], compound="left", width = 7, command = self.MenuManager.loadMenuProperties )
 		
 		
-		self.f3 = LabelFrame(self.root, text = 'Properties', width = 230)
+		self.f3 = LabelFrame(self.root, text = 'Properties', width = 230, height = 350)
 		self.f4 = LabelFrame(self.root, text = 'Elements')
 		
-		self.lb1 = Listbox(self.f4, width = 36, height = 7)
+		self.lb1 = Listbox(self.f4, width = 36, relief = 'flat', height = 7)
 		
 		self.f11.grid(row=0, column=0, sticky = (W,E))
 		self.b0.grid(row=0,column = 0, padx= 3)
@@ -133,12 +133,12 @@ class Main:
 		self.f3.grid(row=1, column=1, padx = 5, sticky = (N,W,E,S))
 		self.f4.grid(row=2, column=1, padx = 5, sticky = (N,W,E,S))
 		
-		self.lb1.grid(row=0,column=0)
+		self.lb1.grid(row=0,column=0,sticky = (N,W,E,S))
 		
 		self.MenuManager.createMenu()
 		
 		self.nb.bind('<<NotebookTabChanged>>', self.newMenuPressed)
-		self.lb1.bind('<<ListboxSelect>>', lambda _:self.elementManager.listboxSelect() )
+		self.lb1.bind('<<ListboxSelect>>', lambda _:self.elementManager.listboxSelect())
 		
 		self.root.mainloop()
 		

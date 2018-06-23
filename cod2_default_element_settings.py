@@ -11,18 +11,28 @@ This code has no licence, feel free to do whatever you want with it.
 '''
 
 labelSettings = {
-	'name': 		['label', 'E|S', None],
-	'visible':		['MENU_TRUE', 'OM|bool', None],
-	'rect':			['0 0 128 24', 'E', None],
-	'origin':		['0 0', 'E', None],
-	'forecolor':	['1 1 1', 'CB|globalColours', None],
-	'type':			['ITEM_TYPE_TEXT', 'L', None],
-	'text':			['Example Text', 'E|S', None],
-	'textfont':		['UI_FONT_NORMAL', 'CB|F|font', None],
-	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None],
+	'name': 		['label', 'E|S', None, None],
+	'visible':		['MENU_TRUE', 'OM|bool', None, None],
+	'rect':			['0 0 128 24 4 4', 'E', None, None],
+	'origin':		['0 0', 'E', None, None],
+	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'type':			['ITEM_TYPE_TEXT', 'L', None, None],
+	'text':			['Example Text', 'E|S', None, None],
+	'textfont':		['UI_FONT_NORMAL', 'CB|F|font', None, None],
+	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 }
 
 
+menuSettings = {
+	'name': 		['Menu', 'E|S', None, None],
+	'rect': 		['0 0 640 480', 'L', None, None],
+	'focuscolor': 	['GLOBAL_FOCUSED_COLOR', 'CB|globalColours', None, None],
+	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
+	'blurWorld': 	['5.0', 'E', None, None],
+	
+}
+
+elementOrder = ['name', 'visible', 'rect', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'decoration']
 
 globalDefinitions = {
 	'type': {
@@ -95,6 +105,11 @@ globalDefinitions = {
 }
 
 
-
-
-
+def getValueFromKey(key):
+	for temp1 in globalDefinitions:
+		for temp2 in globalDefinitions[temp1]:
+			if temp2 == key:
+				return globalDefinitions[temp1][temp2]
+	return key
+	
+	
