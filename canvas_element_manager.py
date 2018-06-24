@@ -33,14 +33,51 @@ class Manage:
 		self.settings = {
 			'defaultPos': [640/2, 480/2],
 		
+			'autoUpdateBBOX': True,
 		}
 		
 		self.selectedElement = -1
+	
+	def createButtonElement(self):
+		element = {
+			'type': 'button',
+			'badArgument': [],
+			'name': 'button',
 		
+			'properties': copy.deepcopy(cod2_default_element_settings.buttonSettings),
+		
+			'text': 'Example Button',
+			'colour': 'black',
+			'pos': self.settings['defaultPos'][:],
+			'rect': [0,0,128,24, 4, 4],
+			'size': 12,
+			'bold': '',
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+	
+		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
+		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
+		
+		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
+		element['id'] = elementID
+		
+		self.elements[elementID] = element
+		
+		self.selectElement(elementID)
+
+		self.propertiesManagment.updateElementList()
+		
+		self.calculateCords(element)
+	
 	def createLabelElement(self):
 		element = {
 			'type': 'label',
 			'badArgument': [],
+			'name': 'label',
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.labelSettings),
 		
@@ -59,10 +96,11 @@ class Manage:
 		
 		
 		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
 		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
 		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
 		
-		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'sw')
+		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
 		element['id'] = elementID
 		
 		self.elements[elementID] = element
@@ -70,21 +108,42 @@ class Manage:
 		self.selectElement(elementID)
 		
 		self.propertiesManagment.updateElementList()
+	
+		self.calculateCords(element)
+	
+	def updateRectSizeBasedOnFont(self, element):
+		if not self.settings['autoUpdateBBOX']:
+			return
+	
+		x1, y1, x2, y2 = self.canvas.bbox(element['id'])
+		
+		element['rect'][2] = x2-x1
+		element['rect'][3] = y2-y1
+		
+		element['properties']['rect'][2].var.set(' '.join(str(x) for x in element['rect']))
+		
+		self.calculateCords(element)
 		
 	def calculateCords(self, element):
-		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]-element['rect'][3] )
+		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
+
 		self.canvas.coords(element['id'], element['pos'][0],  element['pos'][1] )
-		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]- element['rect'][3]/2)
-		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]- element['rect'][3]/2)
+		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
+		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
+		
+		if element.has_key('border'):
+			self.canvas.coords(element['border'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
+		
+		if element['properties'].has_key('textaligny') and element['properties']['textaligny'][2] != None:
+			element['properties']['textaligny'][2].var.set(str(element['rect'][3]))
 		
 	def updateOnProperty(self, element = None):
-	
+		
 		if element == None:
 			if not self.selectedElement in self.elements:
 				return
 			
 			element = self.elements[self.selectedElement]
-		
 		
 		# Text
 		if element['properties'].has_key('text'):
@@ -93,7 +152,8 @@ class Manage:
 				element['text'] = newValue
 				self.canvas.itemconfigure(element['id'], text = element['text'])
 				self.propertiesManagment.updateElementList()
-		
+				self.updateRectSizeBasedOnFont(element)
+				
 		
 		# Position (origin)
 		if element['properties'].has_key('origin'):
@@ -133,8 +193,9 @@ class Manage:
 				
 			if element['size'] != newValue or 'textscale' in element['badArgument']:
 				element['size'] = newValue
-				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*31.3)), element['bold'] ) )
+				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*32)), element['bold'] ) )
 				self.propertiesManagment.setGoodPropertyOption(element['id'], 'textscale')
+				self.updateRectSizeBasedOnFont(element)
 		
 		# bold 
 		if element['properties'].has_key('textfont'):
@@ -142,7 +203,8 @@ class Manage:
 		
 			if element['bold'] != newValue:
 				element['bold'] = newValue
-				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*31.3)), element['bold'] ) )
+				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*32)), element['bold'] ) )
+				self.updateRectSizeBasedOnFont(element)
 		
 		
 		
@@ -152,11 +214,7 @@ class Manage:
 
 			if element['colour'] != newValue or 'forecolor' in element['badArgument']:
 				try:
-					rgb = ( float(newValue.split(' ')[0] )*255, float(newValue.split(' ')[1] )*255, float(newValue.split(' ')[2] )*255 )
-					alp = float(newValue.split(' ')[3] )
-					
-					if rgb[0] > 255 or rgb[1] > 255 or rgb[2] > 255:
-						raise RuntimeError
+					rgb = self.getRGBA(newValue)[0:3]
 				except:
 					self.propertiesManagment.setBadPropertyOption(element['id'], 'forecolor')
 					return
@@ -169,11 +227,31 @@ class Manage:
 		if element['properties'].has_key('name'):
 			newValue = element['properties']['name'][2].var.get()
 			
-			if element['properties']['name'] != newValue:
-				
+			if element['name'] != newValue:
 				self.propertiesManagment.updateElementList()
+				element['name'] = newValue
 		
 		
+		# Border
+		if element['properties'].has_key('border'):
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['border'][2].var.get())
+			
+			if newValue == '1':
+				self.canvas.itemconfigure(element['border'], state = 'normal')
+			else:
+				self.canvas.itemconfigure(element['border'], state = 'hidden')
+				
+		# Bordercolour
+		if element['properties'].has_key('bordercolor'):
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['bordercolor'][2].var.get())
+			try:
+				rgb = self.getRGBA(newValue)[0:3]
+			except:
+				self.propertiesManagment.setBadPropertyOption(element['id'], 'bordercolor')
+				return
+				
+			self.canvas.itemconfigure(element['border'], outline = self.RGBtoHex(rgb))
+			self.propertiesManagment.setGoodPropertyOption(element['id'], 'bordercolor')
 		
 	def updateOnPropertyNonElement(self, element):
 		
@@ -181,14 +259,13 @@ class Manage:
 		if element['properties'].has_key('name'):
 			newValue = element['properties']['name'][2].var.get()
 			
-			if element['properties']['name'] != newValue:
+			if element['name'] != newValue:
 				if element['type'] == 'menu':
 					self.GUI.MenuManager.updateTabName( self.GUI.nb.select(), newValue )
 					element['name'] = newValue
 		
 	def buttonPress(self, event):
 		self.selectOnPress(event.x, event.y)
-		
 		
 		if not self.selectedElement in self.elements:
 			return	
@@ -203,7 +280,7 @@ class Manage:
 		for elementID in self.elements:
 			element = self.elements[elementID]
 			
-			if self.inside(x,y, ((element['pos'][0], element['pos'][1]-element['rect'][3] ), (element['pos'][0]+element['rect'][2], element['pos'][1]) ) ):
+			if self.inside(x, y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3]) ) ):
 				self.selectElement(elementID)
 				return
 	
@@ -219,7 +296,7 @@ class Manage:
 		self.canvas.delete("all")
 		self.elements = {}
 	
-	def disselectElement(self):
+	def disselectElement(self, clearListbox = True):
 		if not self.selectedElement in self.elements:
 			return
 	
@@ -228,13 +305,16 @@ class Manage:
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveF'], state = 'hidden' )
 	
 		self.selectedElement = -1
-		self.GUI.lb1.selection_clear(0, END)
+		
+		if clearListbox:
+			self.GUI.lb1.selection_clear(0, END)
 	
-	def selectElement(self, elementID):
+	def selectElement(self, elementID, clearListbox = True):
 		oldSelect = self.selectedElement
 	
+
 		if self.selectedElement in self.elements:
-			self.disselectElement()
+			self.disselectElement(clearListbox)
 	
 		self.selectedElement = elementID
 		
@@ -262,10 +342,11 @@ class Manage:
 		try:
 			index = int(self.GUI.lb1.curselection()[0])
 			elementID = int(self.GUI.lb1.get(index).split('(', 1)[1].split(')', 1)[0])
+			
 		except:
 			return
 	
-		self.selectElement(elementID)
+		self.selectElement(elementID, clearListbox = False)
 	
 	def buttonRelease(self, event):
 		if not self.selectedElement in self.elements:
@@ -296,11 +377,12 @@ class Manage:
 	def RGBtoHex(self, rgb):
 		return '#%02x%02x%02x' % rgb
 		
+	def getRGBA(self, _str):
+		rgba = ( float(_str.split(' ')[0] )*255, float(_str.split(' ')[1] )*255, float(_str.split(' ')[2] )*255, float(_str.split(' ')[3] )*255 )
 		
+		if rgba[0] > 255 or rgba[1] > 255 or rgba[2] > 255:
+			raise RuntimeError
 		
-		
-		
-		
-		
+		return rgba
 		
 		

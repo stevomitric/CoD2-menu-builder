@@ -30,7 +30,10 @@ def _writeProperties(element, indent):
 	
 		value = element['properties'][property][0]
 		flags = element['properties'][property][1]
-				
+		
+		if 'DNIIN' in flags and not value:
+			continue
+		
 		if 'S' in flags:
 			value = '"' + value + '"'
 				

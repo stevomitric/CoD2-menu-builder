@@ -18,10 +18,34 @@ labelSettings = {
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['ITEM_TYPE_TEXT', 'L', None, None],
 	'text':			['Example Text', 'E|S', None, None],
+	'dvar':			['', 'E|DNIIN', None, None],
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
+	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
+	'textaligny':	['20', 'L', None, None],
+	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'border':		['MENU_FALSE', 'OM|bool', None, None],
 }
 
+buttonSettings = {
+	'name': 		['button', 'E|S', None, None],
+	'visible':		['MENU_TRUE', 'OM|bool', None, None],
+	'rect':			['0 0 128 24 4 4', 'E', None, None],
+	'origin':		['0 0', 'E', None, None],
+	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'type':			['ITEM_TYPE_BUTTON', 'L', None, None],
+	'text':			['Example Button', 'E|S', None, None],
+	'dvar':			['', 'E|S|DNIIN', None, None],
+	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
+	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
+	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
+	'textaligny':	['20', 'L', None, None],
+	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'border':		['MENU_FALSE', 'OM|bool', None, None],
+	'dvartest':		['', 'E|S|DNIIN', None, None],
+	'hideDvar':		['', 'E|DNIIN', None, None],
+	'showDvar':		['', 'E|DNIIN', None,None]
+}
 
 menuSettings = {
 	'name': 		['Menu', 'E|S', None, None],
@@ -32,7 +56,14 @@ menuSettings = {
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'decoration']
+elementOrder = ['name', 'visible', 'rect', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
+
+elementGroup = {
+	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor'],
+	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration'],
+	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar']
+}
+
 
 globalDefinitions = {
 	'type': {
@@ -101,7 +132,14 @@ globalDefinitions = {
 	'size': {
 		'GLOBAL_TEXT_SIZE':				'.35',
 		'GLOBAL_HEADER_SIZE':			'.50',
+	},	
+	
+	'style': {
+		'ITEM_TEXTSTYLE_NORMAL':		'0',
+		'ITEM_TEXTSTYLE_SHADOWED':		'3',
 	},
+	
+	
 }
 
 

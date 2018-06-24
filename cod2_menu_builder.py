@@ -62,7 +62,7 @@ class Main:
 		
 	def GUIDraw(self):
 		self.root = Tk()
-		self.root.geometry('900x590')
+		self.root.geometry('935x590')
 		self.root.title('Call of Duty 2 Menu Builder - stEvo')
 		
 		self.GUILoadImages()
@@ -103,7 +103,7 @@ class Main:
 		
 		self.b0 = Button(self.f11, text = 'Item', image = self.guiImages['ICONblank'], compound="left", width = 7)
 		self.b1 = Button(self.f11, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7, command = self.elementManager.createLabelElement )
-		self.b2 = Button(self.f11, text = 'Button', image = self.guiImages['ICONbutton'], compound="left", width = 7)
+		self.b2 = Button(self.f11, text = 'Button', image = self.guiImages['ICONbutton'], compound="left", width = 7, command = self.elementManager.createButtonElement )
 		self.b3 = Button(self.f11, text = 'Rect', image = self.guiImages['ICONrectangle'], compound="left", width = 7)
 		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7)
 		
@@ -112,10 +112,23 @@ class Main:
 		self.b5 = Button(self.f12, text = 'Menu', image = self.guiImages['ICONmenu'], compound="left", width = 7, command = self.MenuManager.loadMenuProperties )
 		
 		
-		self.f3 = LabelFrame(self.root, text = 'Properties', width = 230, height = 350)
+		self.f3 = LabelFrame(self.root, text = 'Properties', width = 240, height = 350)
+		self.f3nb = Notebook(self.f3, width = 250)
+		
+		self.f31 = Frame( width = 250, height = 350)
+		self.f32 = Frame( width = 230, height = 350)
+		self.f33 = Frame( width = 230, height = 350)
+		self.f34 = Frame( width = 230, height = 350)
+		
+		self.f3nb.add(self.f31, text = 'Basic', padding = 5)
+		self.f3nb.add(self.f32, text = 'Text', padding = 5)
+		self.f3nb.add(self.f33, text = 'Functions', padding = 5)
+		self.f3nb.add(self.f34, text = 'Other', padding = 5)
+		
 		self.f4 = LabelFrame(self.root, text = 'Elements')
 		
-		self.lb1 = Listbox(self.f4, width = 36, relief = 'flat', height = 7)
+		
+		self.lb1 = Listbox(self.f4, width = 41, relief = 'flat', height = 5)
 		
 		self.f11.grid(row=0, column=0, sticky = (W,E))
 		self.b0.grid(row=0,column = 0, padx= 3)
@@ -128,12 +141,17 @@ class Main:
 		self.b5.grid(row=0, column = 0, padx=3)
 		
 		self.f2.grid(row=1, column=0, rowspan=2)
+		self.root.rowconfigure(1, weight=1)
+		
 		self.nb.grid(row=0, column=0)
 		
 		self.f3.grid(row=1, column=1, padx = 5, sticky = (N,W,E,S))
+		self.f3nb.grid(row=0,column=0)
+		
 		self.f4.grid(row=2, column=1, padx = 5, sticky = (N,W,E,S))
 		
 		self.lb1.grid(row=0,column=0,sticky = (N,W,E,S))
+		
 		
 		self.MenuManager.createMenu()
 		

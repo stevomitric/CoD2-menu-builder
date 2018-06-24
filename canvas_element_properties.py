@@ -25,22 +25,26 @@ class Properties:
 		
 	
 	def clearProperties(self):
-		_list = self.GUI.f3.winfo_children()
-	
-		for widget in _list:
-			widget.destroy()
+		frames = [self.GUI.f31, self.GUI.f32, self.GUI.f33, self.GUI.f34]
+		
+		for frame in frames:
+			_list = frame.winfo_children()
+		
+			for widget in _list:
+				widget.destroy()
 			
 	
 	def entryCallbackNonElementProperty(self, property, element):
 		element['properties'][property][0] = element['properties'][property][2].var.get()
 		self.manage.updateOnPropertyNonElement(element)
 	
-	def entryCallback(self, property, elementID):
+	def entryCallback(self, property, elementID, callProperty = True):
 		element = self.manage.elements[elementID]
 		
 		element['properties'][property][0] = element['properties'][property][2].var.get()
 	
-		self.manage.updateOnProperty()
+		if callProperty:
+			self.manage.updateOnProperty()
 	
 	def setBadPropertyOption(self, elementID, property):
 		element = self.manage.elements[elementID]
@@ -73,13 +77,27 @@ class Properties:
 		else:
 			element = nonElementProperty
 	
-		row = 0
+		rows = [0,0,0,0]
 		for property in element['properties']:
+			
+			frame, rowINX = None, -1
+			if property in cod2_default_element_settings.elementGroup['basic']:
+				frame, rowINX = self.GUI.f31, 0
+			elif property in cod2_default_element_settings.elementGroup['text']:
+				frame, rowINX = self.GUI.f32, 1
+			elif property in cod2_default_element_settings.elementGroup['function']:
+				frame, rowINX = self.GUI.f33, 2
+			elif property in cod2_default_element_settings.elementGroup['other']:
+				frame, rowINX = self.GUI.f34, 3
+			else:
+				print 'Unknown property: ', property
+				continue
+				
 			value = element['properties'][property][0]
 			flags = element['properties'][property][1].split('|')
 	
-			element['properties'][property][3] = Label(self.GUI.f3, text = property+': ')
-			element['properties'][property][3].grid(row = row, column = 0, sticky=W)
+			element['properties'][property][3] = Label(frame, text = property+': ')
+			element['properties'][property][3].grid(row = rows[rowINX], column = 0, sticky=W)
 	
 			widget = None
 	
@@ -87,8 +105,8 @@ class Properties:
 				var = StringVar()
 				var.set(value)
 			
-				widget = Entry(self.GUI.f3, textvariable=var)
-				widget.grid(row=row,column=1,sticky=W,pady=3)
+				widget = Entry(frame, textvariable=var)
+				widget.grid(row=rows[rowINX],column=1,sticky=W,pady=3)
 				
 				widget.var = var
 				
@@ -100,8 +118,8 @@ class Properties:
 				
 				var = StringVar()
 				
-				widget = OptionMenu(self.GUI.f3, var, value,  *values)
-				widget.grid(row=row,column=1,sticky=W,pady=3)
+				widget = OptionMenu(frame, var, value,  *values)
+				widget.grid(row=rows[rowINX],column=1,sticky=W,pady=3)
 				
 				widget.var = var
 				
@@ -114,9 +132,9 @@ class Properties:
 				var = StringVar()
 				var.set(value)
 			
-				widget = Combobox(self.GUI.f3, textvariable = var)
+				widget = Combobox(frame, textvariable = var)
 				widget['values'] = values
-				widget.grid(row=row,column=1,sticky=W,pady=3)
+				widget.grid(row=rows[rowINX],column=1,sticky=W,pady=3)
 	
 				widget.var = var
 	
@@ -124,12 +142,20 @@ class Properties:
 				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element) )
 	
 			elif 'L' in flags:
-				widget = Label(self.GUI.f3, text = value)
-				widget.grid(row=row,column=1,sticky=W,pady=3)
+				var = StringVar()
+				var.set(value)
+				
+				widget = Label(frame, textvariable = var)
+				widget.grid(row=rows[rowINX],column=1,sticky=W,pady=3)
+	
+				widget.var = var
+	
+				if elementID != None: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID, False) )
+				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element, False))
 	
 			element['properties'][property][2] = widget
 	
-			row += 1
+			rows[rowINX] += 1
 			
 		self.manage.updatePosiotionValue(elementID)
 		
