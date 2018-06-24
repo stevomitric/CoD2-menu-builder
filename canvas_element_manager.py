@@ -40,6 +40,7 @@ class Manage:
 	def createLabelElement(self):
 		element = {
 			'type': 'label',
+			'badArgument': [],
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.labelSettings),
 		
@@ -48,6 +49,7 @@ class Manage:
 			'pos': self.settings['defaultPos'][:],
 			'rect': [0,0,128,24, 4, 4],
 			'size': 12,
+			'bold': '',
 			
 			'offsetMoveX': 0,
 			'offsetMoveY': 0,
@@ -75,11 +77,13 @@ class Manage:
 		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]- element['rect'][3]/2)
 		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]- element['rect'][3]/2)
 		
-	def updateOnProperty(self):
-		if not self.selectedElement in self.elements:
-			return
-		
-		element = self.elements[self.selectedElement]
+	def updateOnProperty(self, element = None):
+	
+		if element == None:
+			if not self.selectedElement in self.elements:
+				return
+			
+			element = self.elements[self.selectedElement]
 		
 		
 		# Text
@@ -100,13 +104,16 @@ class Manage:
 				except:
 					return
 		
+				self.calculateCords(element)
+		
 		# Rectangle
 		if element['properties'].has_key('rect'):
 			newValue = element['properties']['rect'][2].var.get()
-			if str(element['rect']).replace('[','').replace(']', '').replace(',','') != newValue:
+			if str(element['rect']).replace('[','').replace(']', '').replace(',','') != newValue or 'rect' in element['badArgument']:
 				try:
 					element['rect'] = [int(newValue.split(' ')[0]), int(newValue.split(' ')[1]), int(newValue.split(' ')[2]), int(newValue.split(' ')[3]), int(newValue.split(' ')[4]) , int(newValue.split(' ')[5])]
-					tkMessageBox.showinfo('Warning 001', 'Changing "rect" value may result in unwanted positioning of elements. The last two arguments represent widget alignment. They have been set to HORIZONTAL_ALIGN_FULLSCREEN and VERTICAL_ALIGN_FULLSCREEN (4 4) which means that item will "stretch", following players aspect-ratio.')
+					if element['rect'][4] != 4 or element['rect'][5] != 4:
+						tkMessageBox.showinfo('Warning 001', 'Changing "rect" value may result in unwanted positioning of elements. The last two arguments represent widget alignment. They have been set to HORIZONTAL_ALIGN_FULLSCREEN and VERTICAL_ALIGN_FULLSCREEN (4 4) which means that item will "stretch", following players aspect-ratio.')
 				except:
 					self.propertiesManagment.setBadPropertyOption(element['id'], 'rect')
 					return
@@ -124,10 +131,49 @@ class Manage:
 				self.propertiesManagment.setBadPropertyOption(element['id'], 'textscale')
 				return
 				
-			if element['size'] != newValue:
+			if element['size'] != newValue or 'textscale' in element['badArgument']:
 				element['size'] = newValue
-				self.canvas.itemconfigure(element['id'], font = "default "+str(int(element['size']*31.3) ) )
+				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*31.3)), element['bold'] ) )
 				self.propertiesManagment.setGoodPropertyOption(element['id'], 'textscale')
+		
+		# bold 
+		if element['properties'].has_key('textfont'):
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['textfont'][2].var.get())
+		
+			if element['bold'] != newValue:
+				element['bold'] = newValue
+				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*31.3)), element['bold'] ) )
+		
+		
+		
+		# Font colour (forecolor)
+		if element['properties'].has_key('forecolor'):
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['forecolor'][2].var.get())
+
+			if element['colour'] != newValue or 'forecolor' in element['badArgument']:
+				try:
+					rgb = ( float(newValue.split(' ')[0] )*255, float(newValue.split(' ')[1] )*255, float(newValue.split(' ')[2] )*255 )
+					alp = float(newValue.split(' ')[3] )
+					
+					if rgb[0] > 255 or rgb[1] > 255 or rgb[2] > 255:
+						raise RuntimeError
+				except:
+					self.propertiesManagment.setBadPropertyOption(element['id'], 'forecolor')
+					return
+					
+				element['colour'] = newValue
+				self.canvas.itemconfigure(element['id'], fill = self.RGBtoHex(rgb) )
+				self.propertiesManagment.setGoodPropertyOption(element['id'], 'forecolor')
+		
+		# Name
+		if element['properties'].has_key('name'):
+			newValue = element['properties']['name'][2].var.get()
+			
+			if element['properties']['name'] != newValue:
+				
+				self.propertiesManagment.updateElementList()
+		
+		
 		
 	def updateOnPropertyNonElement(self, element):
 		
@@ -138,6 +184,7 @@ class Manage:
 			if element['properties']['name'] != newValue:
 				if element['type'] == 'menu':
 					self.GUI.MenuManager.updateTabName( self.GUI.nb.select(), newValue )
+					element['name'] = newValue
 		
 	def buttonPress(self, event):
 		self.selectOnPress(event.x, event.y)
@@ -181,6 +228,7 @@ class Manage:
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveF'], state = 'hidden' )
 	
 		self.selectedElement = -1
+		self.GUI.lb1.selection_clear(0, END)
 	
 	def selectElement(self, elementID):
 		oldSelect = self.selectedElement
@@ -245,7 +293,8 @@ class Manage:
 		self.calculateCords(self.elements[self.selectedElement])
 		
 		
-		
+	def RGBtoHex(self, rgb):
+		return '#%02x%02x%02x' % rgb
 		
 		
 		

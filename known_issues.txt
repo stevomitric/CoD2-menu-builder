@@ -1,0 +1,5 @@
+1. Dsiplay text might be bigger then the actual one in game when using small scale values (programming language barier).
+
+2. Elements are streched from 4:3 screens to fit any other aspect ratio.
+
+3. Alpha value does not display with some elements (programming language barier).

@@ -43,11 +43,20 @@ class Properties:
 		self.manage.updateOnProperty()
 	
 	def setBadPropertyOption(self, elementID, property):
-		self.manage.elements[elementID]['properties'][property][3].configure(background = 'red')
+		element = self.manage.elements[elementID]
+	
+		element['properties'][property][3].configure(background = 'red')
+		if property not in element['badArgument']:
+			element['badArgument'].append(property)
 	
 	def setGoodPropertyOption(self, elementID, property):
+		element = self.manage.elements[elementID]
+		
 		defaultColour = self.GUI.root.cget('bg')
-		self.manage.elements[elementID]['properties'][property][3].configure(background = defaultColour)
+		element['properties'][property][3].configure(background = defaultColour)
+	
+		if property in element['badArgument']:
+			element['badArgument'].remove(property)
 	
 	def updatePorperties(self, elementID = None, nonElementProperty = None):
 		self.clearProperties()
@@ -140,6 +149,8 @@ class Properties:
 			type = element['type']
 			id   = element['id']
 			text = element['text']
+			if element['properties'].has_key('name'):
+				type = element['properties']['name'][0]
 		
 			self.GUI.lb1.insert(END, '('+str(id)+') ' + type + ": " + text)
 		

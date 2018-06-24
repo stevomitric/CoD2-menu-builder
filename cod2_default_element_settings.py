@@ -18,14 +18,14 @@ labelSettings = {
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['ITEM_TYPE_TEXT', 'L', None, None],
 	'text':			['Example Text', 'E|S', None, None],
-	'textfont':		['UI_FONT_NORMAL', 'CB|F|font', None, None],
+	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 }
 
 
 menuSettings = {
 	'name': 		['Menu', 'E|S', None, None],
-	'rect': 		['0 0 640 480', 'L', None, None],
+	'rect': 		['0 0 640 480 4 4', 'L', None, None],
 	'focuscolor': 	['GLOBAL_FOCUSED_COLOR', 'CB|globalColours', None, None],
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
 	'blurWorld': 	['5.0', 'E', None, None],
@@ -80,8 +80,8 @@ globalDefinitions = {
 	},
 	
 	'font': {
-		'UI_FONT_NORMAL':				'1',
-		'UI_FONT_BOLD':					'4',
+		'UI_FONT_NORMAL':				'',		#'1',
+		'UI_FONT_BOLD':					'bold',	#'4',
 	
 	},
 
