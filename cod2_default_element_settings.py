@@ -10,6 +10,17 @@ stevo.mitric@yahoo.com
 This code has no licence, feel free to do whatever you want with it.
 '''
 
+rectSettings = {
+	'visible':		['MENU_TRUE', 'OM|bool', None, None],
+	'rect':			['0 0 200 200 4 4', 'E', None, None],
+	'origin':		['0 0', 'E', None, None],
+	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'backcolor':	['0 0 0 .5', 'CB|globalColours', None, None],
+	'border':		['MENU_FALSE', 'OM|bool', None, None],
+	'style': 		['WINDOW_STYLE_FILLED', 'L', None, None],
+}
+
+
 labelSettings = {
 	'name': 		['label', 'E|S', None, None],
 	'visible':		['MENU_TRUE', 'OM|bool', None, None],
@@ -56,11 +67,11 @@ menuSettings = {
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
+elementOrder = ['name', 'visible', 'rect', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
 
 elementGroup = {
 	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor'],
-	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration'],
+	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor'],
 	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar']
 }
 

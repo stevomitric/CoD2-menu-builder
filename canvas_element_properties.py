@@ -44,7 +44,7 @@ class Properties:
 		element['properties'][property][0] = element['properties'][property][2].var.get()
 	
 		if callProperty:
-			self.manage.updateOnProperty()
+			self.manage.updateOnProperty(property=property)
 	
 	def setBadPropertyOption(self, elementID, property):
 		element = self.manage.elements[elementID]
@@ -174,7 +174,9 @@ class Properties:
 			element = self.manage.elements[elementID]
 			type = element['type']
 			id   = element['id']
-			text = element['text']
+			if element.has_key('text'):
+				text = element['text']
+			else: text = ' / '
 			if element['properties'].has_key('name'):
 				type = element['properties']['name'][0]
 		

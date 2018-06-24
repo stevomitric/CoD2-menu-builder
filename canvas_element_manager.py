@@ -18,6 +18,7 @@ import copy, tkMessageBox
 
 from Tkinter 	import *
 from ttk		import *
+from PIL		import Image, ImageTk
 
 class Manage:
 	def __init__(self, GUI):	
@@ -38,6 +39,39 @@ class Manage:
 		
 		self.selectedElement = -1
 	
+	def createRectElement(self):
+		element = {
+			'type': 'rect',
+			'badArgument': [],
+			'name': 'rect',
+		
+			'properties': copy.deepcopy(cod2_default_element_settings.rectSettings),
+			'image': Image.new('RGBA', (200, 200), (0,0,0,128) ),
+			
+			'colour': (0, 0, 0, 128),
+			'pos': self.settings['defaultPos'][:],
+			'rect': [0,0,200,200, 4, 4],
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+		element['imageR'] = ImageTk.PhotoImage(element['image'])
+	
+		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
+		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
+		
+		elementID = self.canvas.create_image( element['pos'][0], element['pos'][1], image = element['imageR'], anchor='nw' )
+		element['id'] = elementID
+		
+		self.elements[elementID] = element
+		
+		self.selectElement(elementID)
+
+		self.propertiesManagment.updateElementList()
+		
+		self.calculateCords(element)	
 	def createButtonElement(self):
 		element = {
 			'type': 'button',
@@ -112,7 +146,7 @@ class Manage:
 		self.calculateCords(element)
 	
 	def updateRectSizeBasedOnFont(self, element):
-		if not self.settings['autoUpdateBBOX']:
+		if not self.settings['autoUpdateBBOX'] or not element.has_key('text'):
 			return
 	
 		x1, y1, x2, y2 = self.canvas.bbox(element['id'])
@@ -124,7 +158,7 @@ class Manage:
 		
 		self.calculateCords(element)
 		
-	def calculateCords(self, element):
+	def calculateCords(self, element, updateImage = False):
 		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
 
 		self.canvas.coords(element['id'], element['pos'][0],  element['pos'][1] )
@@ -137,7 +171,13 @@ class Manage:
 		if element['properties'].has_key('textaligny') and element['properties']['textaligny'][2] != None:
 			element['properties']['textaligny'][2].var.set(str(element['rect'][3]))
 		
-	def updateOnProperty(self, element = None):
+		if element['type'] == 'rect':
+			if updateImage:
+				element['image'] = Image.new('RGBA', (element['rect'][2], element['rect'][3]), element['colour'] )
+				element['imageR'] = ImageTk.PhotoImage(element['image'])
+				self.canvas.itemconfigure(element['id'], image = element['imageR'])
+		
+	def updateOnProperty(self, element = None, property = None):
 		
 		if element == None:
 			if not self.selectedElement in self.elements:
@@ -178,7 +218,7 @@ class Manage:
 					self.propertiesManagment.setBadPropertyOption(element['id'], 'rect')
 					return
 			
-				self.calculateCords(element)
+				self.calculateCords(element, updateImage = True)
 				self.propertiesManagment.setGoodPropertyOption(element['id'], 'rect')
 			
 		
@@ -196,6 +236,7 @@ class Manage:
 				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*32)), element['bold'] ) )
 				self.propertiesManagment.setGoodPropertyOption(element['id'], 'textscale')
 				self.updateRectSizeBasedOnFont(element)
+				
 		
 		# bold 
 		if element['properties'].has_key('textfont'):
@@ -233,16 +274,15 @@ class Manage:
 		
 		
 		# Border
-		if element['properties'].has_key('border'):
+		if element['properties'].has_key('border') and property == 'border':
 			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['border'][2].var.get())
-			
 			if newValue == '1':
 				self.canvas.itemconfigure(element['border'], state = 'normal')
-			else:
+			elif newValue == '0':
 				self.canvas.itemconfigure(element['border'], state = 'hidden')
 				
 		# Bordercolour
-		if element['properties'].has_key('bordercolor'):
+		if element['properties'].has_key('bordercolor') and property == 'bordercolor':
 			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['bordercolor'][2].var.get())
 			try:
 				rgb = self.getRGBA(newValue)[0:3]
@@ -252,6 +292,18 @@ class Manage:
 				
 			self.canvas.itemconfigure(element['border'], outline = self.RGBtoHex(rgb))
 			self.propertiesManagment.setGoodPropertyOption(element['id'], 'bordercolor')
+		
+		if element['properties'].has_key('backcolor') and property == 'backcolor':
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['backcolor'][2].var.get())
+			try:
+				rgba = self.getRGBA(newValue)[:]
+			except:
+				self.propertiesManagment.setBadPropertyOption(element['id'], 'backcolor')
+				return
+			
+			element['colour'] = rgba
+			self.calculateCords(element, updateImage = True)
+			self.propertiesManagment.setGoodPropertyOption(element['id'], 'backcolor')
 		
 	def updateOnPropertyNonElement(self, element):
 		
@@ -378,8 +430,8 @@ class Manage:
 		return '#%02x%02x%02x' % rgb
 		
 	def getRGBA(self, _str):
-		rgba = ( float(_str.split(' ')[0] )*255, float(_str.split(' ')[1] )*255, float(_str.split(' ')[2] )*255, float(_str.split(' ')[3] )*255 )
-		
+		rgba = ( int(float(_str.split(' ')[0] )*255), int(float(_str.split(' ')[1] )*255), int(float(_str.split(' ')[2] )*255), int(float(_str.split(' ')[3] )*255) )
+
 		if rgba[0] > 255 or rgba[1] > 255 or rgba[2] > 255:
 			raise RuntimeError
 		
