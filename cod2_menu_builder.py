@@ -171,7 +171,7 @@ class Main:
 		
 	def imageUpload(self):
 		top = Toplevel()
-		top.geometry('300x350')
+		top.geometry('300x400')
 		
 		Button(top, text = 'Upload Image', width = 16, command = lambda: self.uploadImage(top) ).grid(row=0,column = 0,padx=10,pady=10)
 		Label(top, text = 'Formats: DDS, PNG, JPG, BMP').grid(row = 0, column = 1)
@@ -197,7 +197,14 @@ class Main:
 		top.canvas.grid(row=3,column =0, columnspan = 2, pady=20)
 		top.image = top.canvas.create_image(1,2, image = self.guiImages['nopreview'], anchor='nw')
 		
+		Button(top, text = 'Continue', width = 16, command = lambda top=top: self.getValue(top) ).grid(row=4,column = 0,columnspan=2,padx=10,pady=0)
+		
+		
 		var.trace('w', lambda a='',b='',c='',self=self,top=top: self.onUpdateImage(top) )
+		
+	def getValue(self, top):
+		self.elementManager.imageSettings( 'COD'+top.cb.var.get() )
+		top.destroy()
 		
 	def onUpdateImage(self, top):
 		imgname = 'COD'+top.cb.var.get()

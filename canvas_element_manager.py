@@ -68,6 +68,9 @@ class Manage:
 		self.calculateCords(element)
 		
 	def imageSettings(self, imageID):
+		if not self.GUI.guiRawImageData.has_key(imageID):
+			self.GUI.guiRawImageData[imageID] = Image.new('RGBA', (1, 1), (0,0,0,0) )
+	
 		element = {
 			'type': 'image',
 			'badArgument': [],
@@ -75,16 +78,19 @@ class Manage:
 			'supportsScalle': 1,
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.imageSettings),
-			'image': self.images[imageID],
+			'imageOriginal': self.GUI.guiRawImageData[imageID],
+			'image': self.GUI.guiRawImageData[imageID],
 			
 			'pos': self.settings['defaultPos'][:],
-			'rect': [0,0,self.images[imageID].size[0],self.images[imageID].size[1], 4, 4],
+			'rect': [0,0,self.GUI.guiRawImageData[imageID].size[0],self.GUI.guiRawImageData[imageID].size[1], 4, 4],
 			
 			'offsetMoveX': 0,
 			'offsetMoveY': 0,
 		}
 		element['imageR'] = ImageTk.PhotoImage(element['image'])
-
+		element['properties']['rect'][0] = " ".join( str(i) for i in element['rect'] )
+		element['properties']['background'][0] = imageID[3:]
+		
 		elementID = self.canvas.create_image( element['pos'][0], element['pos'][1], image = element['imageR'], anchor='nw' )
 		element['id'] = elementID
 
@@ -198,9 +204,19 @@ class Manage:
 		
 		if element['type'] == 'rect':
 			if updateImage:
-				element['image'] = Image.new('RGBA', (element['rect'][2], element['rect'][3]), element['colour'] )
-				element['imageR'] = ImageTk.PhotoImage(element['image'])
-				self.canvas.itemconfigure(element['id'], image = element['imageR'])
+				try:
+					element['image'] = Image.new('RGBA', (element['rect'][2], element['rect'][3]), element['colour'] )
+					element['imageR'] = ImageTk.PhotoImage(element['image'])
+					self.canvas.itemconfigure(element['id'], image = element['imageR'])
+				except: pass
+		
+		if element['type'] == 'image':
+			if updateImage:
+				try:
+					element['image'] = element['imageOriginal'].resize((element['rect'][2], element['rect'][3]), Image.ANTIALIAS )
+					element['imageR'] = ImageTk.PhotoImage(element['image'])
+					self.canvas.itemconfigure(element['id'], image = element['imageR'])
+				except: pass
 		
 	def updateOnProperty(self, element = None, property = None):
 		
