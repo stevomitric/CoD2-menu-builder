@@ -20,6 +20,16 @@ rectSettings = {
 	'style': 		['WINDOW_STYLE_FILLED', 'L', None, None],
 }
 
+imageSettings = {
+	'visible':		['MENU_TRUE', 'OM|bool', None, None],
+	'rect':			['0 0 200 200 4 4', 'E', None, None],
+	'origin':		['0 0', 'E', None, None],
+	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'border':		['MENU_FALSE', 'OM|bool', None, None],
+	'style': 		['WINDOW_STYLE_SHADER', 'L', None, None],
+	'background': 	['', 'L', None, None],
+}
+
 
 labelSettings = {
 	'name': 		['label', 'E|S', None, None],
@@ -64,14 +74,15 @@ menuSettings = {
 	'focuscolor': 	['GLOBAL_FOCUSED_COLOR', 'CB|globalColours', None, None],
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
 	'blurWorld': 	['5.0', 'E', None, None],
+	'backcolor':	['0 0 0 .5', 'CB|globalColours', None, None],
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
+elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
 
 elementGroup = {
 	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor'],
-	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor'],
+	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor', 'background'],
 	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar']
 }
 
@@ -117,7 +128,6 @@ globalDefinitions = {
 	'windowstyle': {
 		'WINDOW_STYLE_EMPTY':			'0',
 		'WINDOW_STYLE_FILLED':			'1',
-		'WINDOW_STYLE_GRADIENT':		'2',
 		'WINDOW_STYLE_SHADER':			'3',
 	},
 	

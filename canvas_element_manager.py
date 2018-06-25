@@ -44,6 +44,7 @@ class Manage:
 			'type': 'rect',
 			'badArgument': [],
 			'name': 'rect',
+			'supportsScalle': 1,
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.rectSettings),
 			'image': Image.new('RGBA', (200, 200), (0,0,0,128) ),
@@ -56,27 +57,49 @@ class Manage:
 			'offsetMoveY': 0,
 		}
 		element['imageR'] = ImageTk.PhotoImage(element['image'])
-	
-		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
-		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
-		
+
 		elementID = self.canvas.create_image( element['pos'][0], element['pos'][1], image = element['imageR'], anchor='nw' )
 		element['id'] = elementID
-		
-		self.elements[elementID] = element
-		
-		self.selectElement(elementID)
 
+		self.initElementIcons(element)
+		self.elements[elementID] = element
+		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
+		self.calculateCords(element)
 		
+	def imageSettings(self, imageID):
+		element = {
+			'type': 'image',
+			'badArgument': [],
+			'name': 'image',
+			'supportsScalle': 1,
+		
+			'properties': copy.deepcopy(cod2_default_element_settings.imageSettings),
+			'image': self.images[imageID],
+			
+			'pos': self.settings['defaultPos'][:],
+			'rect': [0,0,self.images[imageID].size[0],self.images[imageID].size[1], 4, 4],
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+		element['imageR'] = ImageTk.PhotoImage(element['image'])
+
+		elementID = self.canvas.create_image( element['pos'][0], element['pos'][1], image = element['imageR'], anchor='nw' )
+		element['id'] = elementID
+
+		self.initElementIcons(element)
+		self.elements[elementID] = element
+		self.selectElement(elementID)
+		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)	
+		
 	def createButtonElement(self):
 		element = {
 			'type': 'button',
 			'badArgument': [],
 			'name': 'button',
+			'supportsScalle': 1,
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.buttonSettings),
 		
@@ -90,14 +113,11 @@ class Manage:
 			'offsetMoveX': 0,
 			'offsetMoveY': 0,
 		}
-	
-		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
-		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
-		
+
 		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
 		element['id'] = elementID
+		
+		self.initElementIcons(element)
 		
 		self.elements[elementID] = element
 		
@@ -112,6 +132,7 @@ class Manage:
 			'type': 'label',
 			'badArgument': [],
 			'name': 'label',
+			'supportsScalle': 1,
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.labelSettings),
 		
@@ -126,16 +147,10 @@ class Manage:
 			'offsetMoveY': 0,
 		}
 		
-		
-		
-		
-		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
-		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
-		
 		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
 		element['id'] = elementID
+		
+		self.initElementIcons(element)
 		
 		self.elements[elementID] = element
 		
@@ -144,6 +159,15 @@ class Manage:
 		self.propertiesManagment.updateElementList()
 	
 		self.calculateCords(element)
+	
+	def initElementIcons(self, element):
+		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
+		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
+		element['moveG'] = self.canvas.create_image(0, 0, image=self.images['ICONmoveg'], state = 'hidden')
+		if not element.has_key('supportsScalle'):
+			self.canvas.itemconfigure(element['moveG'], image = '')
 	
 	def updateRectSizeBasedOnFont(self, element):
 		if not self.settings['autoUpdateBBOX'] or not element.has_key('text'):
@@ -164,6 +188,7 @@ class Manage:
 		self.canvas.coords(element['id'], element['pos'][0],  element['pos'][1] )
 		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
 		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
+		self.canvas.coords(element['moveG'], element['pos'][0]+element['rect'][2],  element['pos'][1]+ element['rect'][3])
 		
 		if element.has_key('border'):
 			self.canvas.coords(element['border'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
@@ -293,6 +318,7 @@ class Manage:
 			self.canvas.itemconfigure(element['border'], outline = self.RGBtoHex(rgb))
 			self.propertiesManagment.setGoodPropertyOption(element['id'], 'bordercolor')
 		
+		# Backcolour
 		if element['properties'].has_key('backcolor') and property == 'backcolor':
 			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['backcolor'][2].var.get())
 			try:
@@ -305,7 +331,7 @@ class Manage:
 			self.calculateCords(element, updateImage = True)
 			self.propertiesManagment.setGoodPropertyOption(element['id'], 'backcolor')
 		
-	def updateOnPropertyNonElement(self, element):
+	def updateOnPropertyNonElement(self, element, property):
 		
 		# Name
 		if element['properties'].has_key('name'):
@@ -315,6 +341,28 @@ class Manage:
 				if element['type'] == 'menu':
 					self.GUI.MenuManager.updateTabName( self.GUI.nb.select(), newValue )
 					element['name'] = newValue
+		
+		# Style
+		if element['properties'].has_key('style'):
+			newValue = element['properties']['style'][2].var.get()
+		
+			if element['style'] != newValue:
+				element['style'] = newValue
+				self.GUI.MenuManager.updateBackImage(element)
+			
+		# Backcolour
+		if element['properties'].has_key('backcolor') and property == 'backcolor':
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['backcolor'][2].var.get())
+			try:
+				rgba = self.getRGBA(newValue)[:]
+			except:
+				self.propertiesManagment.setBadPropertyOption('', 'backcolor', element)
+				return
+			
+			element['colour'] = rgba
+			self.GUI.MenuManager.updateBackImage(element)
+			self.propertiesManagment.setGoodPropertyOption('', 'backcolor', element)
+		
 		
 	def buttonPress(self, event):
 		self.selectOnPress(event.x, event.y)
@@ -332,7 +380,12 @@ class Manage:
 		for elementID in self.elements:
 			element = self.elements[elementID]
 			
-			if self.inside(x, y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3]) ) ):
+			if element.has_key('supportsScalle') and self.selectedElement != -1 and self.inside(x, y, ((element['pos'][0]+element['rect'][2]-10, element['pos'][1] + element['rect'][3]-10 ), (element['pos'][0]+element['rect'][2]+10, element['pos'][1]+element['rect'][3]+10) ) ):
+				element['scalling'] = [x,y]
+
+				return
+				
+			elif self.inside(x, y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3]) ) ):
 				self.selectElement(elementID)
 				return
 	
@@ -354,6 +407,7 @@ class Manage:
 	
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['bbox'], state = 'hidden' )
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['move'], state = 'hidden' )
+		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveG'], state = 'hidden' )
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveF'], state = 'hidden' )
 	
 		self.selectedElement = -1
@@ -372,6 +426,7 @@ class Manage:
 		
 		self.canvas.itemconfigure(self.elements[elementID]['bbox'], state = 'normal' )
 		self.canvas.itemconfigure(self.elements[elementID]['move'], state = 'normal' )
+		self.canvas.itemconfigure(self.elements[elementID]['moveG'], state = 'normal' )
 		
 		self.calculateCords(self.elements[elementID])
 	
@@ -403,9 +458,13 @@ class Manage:
 	def buttonRelease(self, event):
 		if not self.selectedElement in self.elements:
 			return
+		element = self.elements[self.selectedElement]
 			
-		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveF'], state = 'hidden' )
-		self.canvas.itemconfigure(self.elements[self.selectedElement]['bbox'], outline="Rosy Brown1" )
+		self.canvas.itemconfigure(element['moveF'], state = 'hidden' )
+		self.canvas.itemconfigure(element['bbox'], outline="Rosy Brown1" )
+		
+		if element.has_key('scalling'):
+			element.pop('scalling')
 		
 	def updatePosiotionValue(self, elementID):
 		if not elementID in self.elements:
@@ -414,16 +473,36 @@ class Manage:
 		self.elements[elementID]['properties']['origin'][0] = str(self.elements[elementID]['pos'][0]) + " " + str(self.elements[elementID]['pos'][1])
 		self.updatePositionPorperties(elementID)
 		
+	def updateRectValue(self, elementID):
+		if not elementID in self.elements:
+			return	
+		element = self.elements[elementID]
+	
+		element['properties']['rect'][0] = " ".join( str(i) for i in element['rect'] )
+		
+		element['properties']['rect'][2].var.set(element['properties']['rect'][0])
+
+		
+		
 	def buttonMotion(self, event):
 		if not self.selectedElement in self.elements:
 			return	
+		element = self.elements[self.selectedElement]
 	
-		self.elements[self.selectedElement]['pos'][0] = event.x - self.elements[self.selectedElement]['offsetMoveX']
-		self.elements[self.selectedElement]['pos'][1] = event.y - self.elements[self.selectedElement]['offsetMoveY']
+		if element.has_key('scalling'):
+			element['rect'][2] += event.x - element['scalling'][0]
+			element['rect'][3] += event.y - element['scalling'][1]
+			element['scalling'] = event.x, event.y
+			self.calculateCords(element, updateImage = True)
+			self.updateRectValue(self.selectedElement)
+			
+		else:
+			element['pos'][0] = event.x - element['offsetMoveX']
+			element['pos'][1] = event.y - element['offsetMoveY']
 		
-		self.updatePosiotionValue(self.selectedElement)
+			self.updatePosiotionValue(self.selectedElement)
 		
-		self.calculateCords(self.elements[self.selectedElement])
+			self.calculateCords(element)
 		
 		
 	def RGBtoHex(self, rgb):

@@ -36,7 +36,7 @@ class Properties:
 	
 	def entryCallbackNonElementProperty(self, property, element):
 		element['properties'][property][0] = element['properties'][property][2].var.get()
-		self.manage.updateOnPropertyNonElement(element)
+		self.manage.updateOnPropertyNonElement(element, property)
 	
 	def entryCallback(self, property, elementID, callProperty = True):
 		element = self.manage.elements[elementID]
@@ -46,15 +46,15 @@ class Properties:
 		if callProperty:
 			self.manage.updateOnProperty(property=property)
 	
-	def setBadPropertyOption(self, elementID, property):
-		element = self.manage.elements[elementID]
+	def setBadPropertyOption(self, elementID, property, element = None):
+		if element == None: element = self.manage.elements[elementID]
 	
 		element['properties'][property][3].configure(background = 'red')
 		if property not in element['badArgument']:
 			element['badArgument'].append(property)
 	
-	def setGoodPropertyOption(self, elementID, property):
-		element = self.manage.elements[elementID]
+	def setGoodPropertyOption(self, elementID, property, element = None):
+		if element == None: element = self.manage.elements[elementID]
 		
 		defaultColour = self.GUI.root.cget('bg')
 		element['properties'][property][3].configure(background = defaultColour)

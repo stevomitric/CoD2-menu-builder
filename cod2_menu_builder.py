@@ -15,6 +15,9 @@ from ttk		import *
 from threading	import Thread
 from PIL 		import Image, ImageTk
 
+from tkFileDialog	import askopenfilename
+from tkMessageBox	import showinfo
+
 import Tkinter as tk
 
 import os, canvas_element_manager, copy, menu_manager, translator
@@ -35,11 +38,16 @@ class Main:
 			'ICONimage': 'data/icons/image.png',
 			'ICONblank': 'data/icons/blank.png',
 			'ICONmenu': 'data/icons/menu.png',
+			'ICONmoveg': 'data/icons/moveg.png',
+		
+			'CODgradient': 'data/gradient.png',
 		
 			'move': 'data/icons/move.png',
 			'moveF': 'data/icons/moveF.png',
-			'background': 'data/transparent.png'
+			'background': 'data/transparent.png',
+			'nopreview': 'data/nopreview.png',
 		}
+		self.guiRawImageData = { }
 		
 		self.MenuManager = menu_manager.MenuManager(self)
 		
@@ -56,7 +64,8 @@ class Main:
 
 				if imageID.startswith('ICON'):
 					self.guiImages[imageID] = self.GUIResizeImage(self.guiImages[imageID], (15,15) )
-				
+
+				self.guiRawImageData[imageID] = self.guiImages[imageID]
 				self.guiImages[imageID] = ImageTk.PhotoImage(self.guiImages[imageID])
 
 		
@@ -105,7 +114,7 @@ class Main:
 		self.b1 = Button(self.f11, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7, command = self.elementManager.createLabelElement )
 		self.b2 = Button(self.f11, text = 'Button', image = self.guiImages['ICONbutton'], compound="left", width = 7, command = self.elementManager.createButtonElement )
 		self.b3 = Button(self.f11, text = 'Rect', image = self.guiImages['ICONrectangle'], compound="left", width = 7, command = self.elementManager.createRectElement )
-		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7)
+		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7, command = self.imageUpload)
 		
 		self.f12 = LabelFrame(self.root, text = 'Tools')
 		
@@ -159,6 +168,64 @@ class Main:
 		self.lb1.bind('<<ListboxSelect>>', lambda _:self.elementManager.listboxSelect())
 		
 		self.root.mainloop()
+		
+	def imageUpload(self):
+		top = Toplevel()
+		top.geometry('300x350')
+		
+		Button(top, text = 'Upload Image', width = 16, command = lambda: self.uploadImage(top) ).grid(row=0,column = 0,padx=10,pady=10)
+		Label(top, text = 'Formats: DDS, PNG, JPG, BMP').grid(row = 0, column = 1)
+		
+		Label(top, text = 'Preview Image: ').grid(row=1,column = 0,padx=10,pady=0)
+		var = StringVar()
+		
+		top.images = []
+		for image in self.guiImages:
+			if image.startswith('COD'):
+				top.images.append(image[3:])
+		
+		
+		top.cb = Combobox(top, textvariable = var)
+		top.cb['values'] = top.images
+		
+		
+		top.cb.grid(row=1,column = 1,padx=0,pady=0)
+		top.cb.var = var
+		
+		top.canvas = Canvas(top, width = 250, height = 250)
+		
+		top.canvas.grid(row=3,column =0, columnspan = 2, pady=20)
+		top.image = top.canvas.create_image(1,2, image = self.guiImages['nopreview'], anchor='nw')
+		
+		var.trace('w', lambda a='',b='',c='',self=self,top=top: self.onUpdateImage(top) )
+		
+	def onUpdateImage(self, top):
+		imgname = 'COD'+top.cb.var.get()
+		if not self.guiImages.has_key(imgname):
+			top.canvas.itemconfigure(top.image, image = self.guiImages['nopreview'])
+		else:
+			top.tempimage = self.guiRawImageData[imgname]
+			top.tempimage = top.tempimage.resize((250,250), Image.ANTIALIAS)
+			top.tempimage = ImageTk.PhotoImage(top.tempimage)
+			
+			top.canvas.itemconfigure(top.image, image = top.tempimage)
+		
+	def uploadImage(self, top):
+		name = askopenfilename( parent = top)
+		if not name: return
+		
+		try:
+			image = Image.open(name)
+			imageTK = ImageTk.PhotoImage(image)
+			name = 'COD'+os.path.basename(name).rsplit('.')[0]
+			self.guiImages[name] = imageTK
+			self.guiRawImageData[name] = image
+			top.cb.var.set(name[3:])
+			top.images.append(name[3:])
+			top.cb.configure(values = top.images)
+		except:
+			showinfo('Error 002', 'Invalid/not supported image file', parent = top)
+			top.canvas.itemconfigure(top.image, image = self.guiImages['nopreview'])
 		
 	def newMenuPressed(self, event):
 		name = self.nb.tab(self.nb.select(), "text")

@@ -14,6 +14,7 @@ from Tkinter 		import *
 from ttk			import *
 
 from tkMessageBox 	import showinfo
+from PIL			import Image, ImageTk
 
 import copy, cod2_default_element_settings
 
@@ -28,11 +29,14 @@ class MenuManager:
 	def createMenu(self):
 		menu = {
 			'type': 'menu',
+			'badArgument': [],
 		
 			'frame': Frame(),			
 			'elements': {},
 			'name': 'Menu'+str(self.inx),
 			'background': 'background',
+			'colour': (0, 0, 0, 128),
+			'style': 'WINDOW_STYLE_EMPTY',
 			
 			'properties': copy.deepcopy(cod2_default_element_settings.menuSettings),
 		}
@@ -43,10 +47,12 @@ class MenuManager:
 		menu['canvas'] = Canvas(menu['frame'], width = 640, height = 480)
 		menu['canvas'].grid(row=0,column=0)
 		menu['canvasBG'] = menu['canvas'].create_image(0,0, image=self.GUI.guiImages[menu['background'] ], anchor=NW)
+		menu['canvasFill'] = menu['canvas'].create_image(0,0, anchor=NW)
 		
 		menu['canvas'].bind('<ButtonPress-1>', self.GUI.elementManager.buttonPress)
 		menu['canvas'].bind('<ButtonRelease-1>', self.GUI.elementManager.buttonRelease)
 		menu['canvas'].bind('<B1-Motion>', self.GUI.elementManager.buttonMotion)
+		
 		
 		self.GUI.nb.add(menu['frame'], text = menu['name'], padding = 5)
 		
@@ -54,6 +60,16 @@ class MenuManager:
 		
 		#self.selectMenu(menu)
 
+	def updateBackImage(self, element):
+		if element['style']	== 'WINDOW_STYLE_FILLED':
+
+			element['imageFill'] = Image.new('RGBA', (640, 480), element['colour'] )
+			element['imageFillR'] = ImageTk.PhotoImage(element['imageFill'])
+			element['canvas'].itemconfigure(element['canvasFill'], image = element['imageFillR'])
+
+		if element['style'] == 'WINDOW_STYLE_EMPTY':
+			element['canvas'].itemconfigure(element['canvasFill'], image = '')
+		
 	def loadMenuProperties(self):
 		self.GUI.elementManager.disselectElement()
 	
