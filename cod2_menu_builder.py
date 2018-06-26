@@ -15,7 +15,7 @@ from ttk		import *
 from threading	import Thread
 from PIL 		import Image, ImageTk
 
-from tkFileDialog	import askopenfilename
+from tkFileDialog	import askopenfilename, asksaveasfilename
 from tkMessageBox	import showinfo
 
 import Tkinter as tk
@@ -86,7 +86,7 @@ class Main:
 		importmenu.add_command(label="Menu file (.menu)")
 		
 		exportmenu 		= Menu(filemenu, tearoff=0)
-		exportmenu.add_command(label="Menu file (.menu)", command = lambda _='': translator.exportAsMenu(self.MenuManager.Menus) )
+		exportmenu.add_command(label="Menu file (.menu)", command = self.exportMenu )
 		
 		filemenu.add_cascade(label="Import", menu = importmenu)
 		filemenu.add_cascade(label="Export", menu = exportmenu)
@@ -173,6 +173,37 @@ class Main:
 		self.lb1.bind('<<ListboxSelect>>', lambda _:self.elementManager.listboxSelect())
 		
 		self.root.mainloop()
+		
+	def exportMenu(self):
+		top = Toplevel()
+		top.geometry('300x120')
+		top.title('Export menu')
+	
+		top.saveTo = StringVar()
+		top.saveTo.set('Save to: ' + os.path.join(os.environ["HOMEPATH"], "Desktop\\test.menu"))
+	
+		Button(top, text = 'Change', width = 15, command = lambda: self.browseExportToSave(top) ).place(x=10,y=10)
+		top.l1 = Label(top, textvariable = top.saveTo, width = 28)
+		top.l1.place(x=120,y=14)
+	
+		top.um = BooleanVar()
+		top.um.set(False)
+	
+		Checkbutton(top, text = 'Use Macros when saving', variable = top.um).place(x=10,y=50)
+	
+		Button(top, text = 'Export', width = 15, command = lambda: self.exportMenuAction(top) ).place(x=100,y=85)
+	
+	def browseExportToSave(self, top):
+		name = asksaveasfilename(parent = top)
+		if not name: return
+		
+		top.saveTo.set('Save to: ' + name)
+		
+		
+	def exportMenuAction(self, top):
+		path = top.saveTo.get()[9:]
+		translator.exportAsMenu(self.MenuManager.Menus, saveto = path)
+		top.destroy()
 		
 	def imageUpload(self):
 		top = Toplevel()
