@@ -38,6 +38,7 @@ class Manage:
 		}
 		
 		self.selectedElement = -1
+		self.copiedElement = -1
 	
 	def createRectElement(self):
 		element = {
@@ -49,7 +50,7 @@ class Manage:
 			'properties': copy.deepcopy(cod2_default_element_settings.rectSettings),
 			'image': Image.new('RGBA', (200, 200), (0,0,0,128) ),
 			
-			'colour': (0, 0, 0, 128),
+			'backImageColour': (0, 0, 0, 128),
 			'pos': self.settings['defaultPos'][:],
 			'rect': [0,0,200,200, 4, 4],
 			
@@ -66,6 +67,8 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)
+		
+		return elementID
 		
 	def imageSettings(self, imageID):
 		if not self.GUI.guiRawImageData.has_key(imageID):
@@ -106,11 +109,13 @@ class Manage:
 			'badArgument': [],
 			'name': 'button',
 			'supportsScalle': 1,
+			'supportBackImage': 1,
 		
 			'properties': copy.deepcopy(cod2_default_element_settings.buttonSettings),
-		
-			'text': 'Example Button',
+
+			'style': 'WINDOW_STYLE_EMPTY',
 			'colour': 'black',
+			'text': 'Example Button',
 			'pos': self.settings['defaultPos'][:],
 			'rect': [0,0,128,24, 4, 4],
 			'size': 12,
@@ -124,15 +129,42 @@ class Manage:
 		element['id'] = elementID
 		
 		self.initElementIcons(element)
-		
 		self.elements[elementID] = element
-		
 		self.selectElement(elementID)
-
 		self.propertiesManagment.updateElementList()
-		
 		self.calculateCords(element)
 	
+	def createFieldElement(self):
+		element = {
+			'type': 'field',
+			'badArgument': [],
+			'name': 'field',
+			'supportsScalle': 1,
+			'supportBackImage': 1,
+		
+			'properties': copy.deepcopy(cod2_default_element_settings.fieldSettings),
+		
+			'text': 'You typed:',
+			'style': 'WINDOW_STYLE_EMPTY',
+			'colour': 'black',
+			'pos': self.settings['defaultPos'][:],
+			'rect': [0,0,128,24, 4, 4],
+			'size': 12,
+			'bold': '',
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+		
+		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
+		element['id'] = elementID
+		
+		self.initElementIcons(element)
+		self.elements[elementID] = element
+		self.selectElement(elementID)
+		self.propertiesManagment.updateElementList()
+		self.calculateCords(element)	
+		
 	def createLabelElement(self):
 		element = {
 			'type': 'label',
@@ -157,23 +189,26 @@ class Manage:
 		element['id'] = elementID
 		
 		self.initElementIcons(element)
-		
 		self.elements[elementID] = element
-		
 		self.selectElement(elementID)
-		
 		self.propertiesManagment.updateElementList()
-	
 		self.calculateCords(element)
 	
 	def initElementIcons(self, element):
 		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
-		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="black", width=2, state = 'hidden')
 		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
 		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
 		element['moveG'] = self.canvas.create_image(0, 0, image=self.images['ICONmoveg'], state = 'hidden')
+		element['invisible'] = self.canvas.create_image(0, 0, image=self.images['ICONinvisible'], state = 'hidden')
+		
 		if not element.has_key('supportsScalle'):
 			self.canvas.itemconfigure(element['moveG'], image = '')
+	
+		if element.has_key('supportBackImage'):
+			element['backImage'] = Image.new('RGBA', (200, 200), (0,0,0,128) )
+			element['backImageColour'] = (0, 0, 0, 128)
+			element['backImageC'] = self.canvas.create_image(0, 0, image='', anchor = 'nw')
 	
 	def updateRectSizeBasedOnFont(self, element):
 		if not self.settings['autoUpdateBBOX'] or not element.has_key('text'):
@@ -184,9 +219,12 @@ class Manage:
 		element['rect'][2] = x2-x1
 		element['rect'][3] = y2-y1
 		
+		if element['type'] == 'field':
+			element['rect'][2] += 100
+		
 		element['properties']['rect'][2].var.set(' '.join(str(x) for x in element['rect']))
 		
-		self.calculateCords(element)
+		self.calculateCords(element, updateImage = True)
 		
 	def calculateCords(self, element, updateImage = False):
 		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
@@ -195,17 +233,22 @@ class Manage:
 		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
 		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
 		self.canvas.coords(element['moveG'], element['pos'][0]+element['rect'][2],  element['pos'][1]+ element['rect'][3])
+		self.canvas.coords(element['invisible'], element['pos'][0],  element['pos'][1])
 		
 		if element.has_key('border'):
 			self.canvas.coords(element['border'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
-		
 		if element['properties'].has_key('textaligny') and element['properties']['textaligny'][2] != None:
-			element['properties']['textaligny'][2].var.set(str(element['rect'][3]))
+			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
+			value = y2-y1
+			element['properties']['textaligny'][2].var.set(str(value))
+			
+		if element.has_key('supportBackImage'):
+			self.canvas.coords(element['backImageC'], element['pos'][0],  element['pos'][1] )
 		
 		if element['type'] == 'rect':
 			if updateImage:
 				try:
-					element['image'] = Image.new('RGBA', (element['rect'][2], element['rect'][3]), element['colour'] )
+					element['image'] = Image.new('RGBA', (element['rect'][2], element['rect'][3]), element['backImageColour'] )
 					element['imageR'] = ImageTk.PhotoImage(element['image'])
 					self.canvas.itemconfigure(element['id'], image = element['imageR'])
 				except: pass
@@ -217,6 +260,19 @@ class Manage:
 					element['imageR'] = ImageTk.PhotoImage(element['image'])
 					self.canvas.itemconfigure(element['id'], image = element['imageR'])
 				except: pass
+		
+		if element.has_key('supportBackImage'):
+			if updateImage:
+
+				if element['style'] == 'WINDOW_STYLE_EMPTY':
+					self.canvas.itemconfigure(element['backImageC'], image = '')
+				else:
+					try:
+						element['backImage'] = Image.new('RGBA', (element['rect'][2], element['rect'][3]), element['backImageColour'] )
+						element['backImageR'] = ImageTk.PhotoImage(element['backImage'])
+						self.canvas.itemconfigure(element['backImageC'], image = element['backImageR'])
+					except: pass
+		
 		
 	def updateOnProperty(self, element = None, property = None):
 		
@@ -343,9 +399,26 @@ class Manage:
 				self.propertiesManagment.setBadPropertyOption(element['id'], 'backcolor')
 				return
 			
-			element['colour'] = rgba
+			element['backImageColour'] = rgba
 			self.calculateCords(element, updateImage = True)
 			self.propertiesManagment.setGoodPropertyOption(element['id'], 'backcolor')
+		
+		# Visible
+		if element['properties'].has_key('visible') and property == 'visible':
+			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['visible'][2].var.get())
+			
+			if newValue == '1':
+				self.canvas.itemconfigure(element['invisible'], state = 'hidden')
+			else:
+				self.canvas.itemconfigure(element['invisible'], state = 'normal')
+		
+		# Style
+		if element['properties'].has_key('style') and property == 'style':
+			newValue = element['properties']['style'][2].var.get()
+		
+			if element['style'] != newValue:
+				element['style'] = newValue
+				self.calculateCords(element, updateImage = True)
 		
 	def updateOnPropertyNonElement(self, element, property):
 		
@@ -375,16 +448,23 @@ class Manage:
 				self.propertiesManagment.setBadPropertyOption('', 'backcolor', element)
 				return
 			
-			element['colour'] = rgba
+			element['backImageColour'] = rgba
 			self.GUI.MenuManager.updateBackImage(element)
 			self.propertiesManagment.setGoodPropertyOption('', 'backcolor', element)
 		
 		
 	def buttonPress(self, event):
-		self.selectOnPress(event.x, event.y)
-		
+		if self.selectedElement in self.elements:
+			element = self.elements[self.selectedElement]
+			if self.inside(event.x, event.y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3]) ) ):
+				pass
+			else:
+				self.selectOnPress(event.x, event.y)
+		else:
+			self.selectOnPress(event.x, event.y)
+				
 		if not self.selectedElement in self.elements:
-			return	
+			return
 		
 		self.elements[self.selectedElement]['offsetMoveX'] = event.x - self.elements[self.selectedElement]['pos'][0]
 		self.elements[self.selectedElement]['offsetMoveY'] = event.y - self.elements[self.selectedElement]['pos'][1]
@@ -499,6 +579,13 @@ class Manage:
 		element['properties']['rect'][2].var.set(element['properties']['rect'][0])
 
 		
+	def rightButtonPress(self, event):
+		if self.selectedElement not in self.elements:
+			self.GUI.rightMenuPopupEvent(event)
+			return
+	
+		self.GUI.rightMenuPopupEventSelected(event)
+		
 		
 	def buttonMotion(self, event):
 		if not self.selectedElement in self.elements:
@@ -519,6 +606,39 @@ class Manage:
 			self.updatePosiotionValue(self.selectedElement)
 		
 			self.calculateCords(element)
+		
+	def copySelected(self):
+		if self.selectedElement not in self.elements:
+			return
+		self.copiedElement = self.selectedElement
+		
+	def copyDataToFrom(self, ID1, ID2):
+		doNotCopy = ['bbox', 'border', 'move', 'moveF', 'moveG', 'invisible', 'backImageC', 'id', 'imageR']
+		
+		element1 = self.elements[ID1]
+		element2 = self.elements[ID2]
+		
+		for data in element2:
+			if data in doNotCopy:
+				continue
+			elif data == 'properties':
+				for property in element2[data]:
+					element1[data][property][0] = element2[data][property][0]
+					element1[data][property][2].var.set(element2[data][property][2].var.get())
+			
+			else:
+				element1[data] = copy.deepcopy(element2[data])
+		
+	def pasteSelected(self):
+		if self.copiedElement not in self.elements:
+			return
+		
+		element = self.elements[self.copiedElement]
+		
+		if element['type'] == 'rect':
+			ID1 = self.createRectElement()
+		
+			self.copyDataToFrom(ID1, self.copiedElement)
 		
 		
 	def RGBtoHex(self, rgb):

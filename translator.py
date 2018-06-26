@@ -41,7 +41,7 @@ def _writeProperties(element, indent):
 	
 	return toWrite
 	
-def exportAsMenu(Menus, saveto = 'C:/users/stevic0/desktop/test.menu'):
+def exportAsMenu(Menus, saveto = 'C:/users/stevo/desktop/test.menu'):
 	# Variable init
 	toWrite = ''
 	

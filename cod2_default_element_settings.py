@@ -31,6 +31,26 @@ imageSettings = {
 }
 
 
+fieldSettings = {
+	'name': 		['datafield', 'E|S', None, None],
+	'visible':		['MENU_TRUE', 'OM|bool', None, None],
+	'rect':			['0 0 128 24 4 4', 'E', None, None],
+	'origin':		['0 0', 'E', None, None],
+	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'type':			['ITEM_TYPE_UPREDITFIELD', 'L', None, None],
+	'text':			['You typed:', 'E|S', None, None],
+	'dvar':			['testdvar', 'E|DNIIN', None, None],
+	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
+	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
+	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
+	'textaligny':	['20', 'L', None, None],
+	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'border':		['MENU_FALSE', 'OM|bool', None, None],
+	'backcolor':	['0 0 0 .5', 'CB|globalColours', None, None],
+	'maxPaintChars':['5', 'E', None, None],
+	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
+}
+
 labelSettings = {
 	'name': 		['label', 'E|S', None, None],
 	'visible':		['MENU_TRUE', 'OM|bool', None, None],
@@ -65,7 +85,9 @@ buttonSettings = {
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'dvartest':		['', 'E|S|DNIIN', None, None],
 	'hideDvar':		['', 'E|DNIIN', None, None],
-	'showDvar':		['', 'E|DNIIN', None,None]
+	'showDvar':		['', 'E|DNIIN', None,None],
+	'backcolor':	['0 0 0 0.5', 'CB|globalColours', None, None],
+	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
 }
 
 menuSettings = {
@@ -78,12 +100,13 @@ menuSettings = {
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
+elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'hideDvar', 'showDvar', 'decoration']
 
 elementGroup = {
 	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor'],
 	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor', 'background'],
-	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar']
+	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar'],
+	'other': ['maxPaintChars',]
 }
 
 

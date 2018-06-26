@@ -39,6 +39,9 @@ class Main:
 			'ICONblank': 'data/icons/blank.png',
 			'ICONmenu': 'data/icons/menu.png',
 			'ICONmoveg': 'data/icons/moveg.png',
+			'ICONinvisible': 'data/icons/invisible.png',
+			'ICONkeyboard': 'data/icons/keyboard.png',
+		
 		
 			'CODgradient': 'data/gradient.png',
 		
@@ -114,7 +117,8 @@ class Main:
 		self.b1 = Button(self.f11, text = 'Label', image = self.guiImages['ICONtext'], compound="left", width = 7, command = self.elementManager.createLabelElement )
 		self.b2 = Button(self.f11, text = 'Button', image = self.guiImages['ICONbutton'], compound="left", width = 7, command = self.elementManager.createButtonElement )
 		self.b3 = Button(self.f11, text = 'Rect', image = self.guiImages['ICONrectangle'], compound="left", width = 7, command = self.elementManager.createRectElement )
-		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7, command = self.imageUpload)
+		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7, command = self.imageUpload )
+		self.b6 = Button(self.f11, text = 'Field', image = self.guiImages['ICONkeyboard'], compound="left", width = 7, command = self.elementManager.createFieldElement )
 		
 		self.f12 = LabelFrame(self.root, text = 'Tools')
 		
@@ -124,15 +128,15 @@ class Main:
 		self.f3 = LabelFrame(self.root, text = 'Properties', width = 240, height = 350)
 		self.f3nb = Notebook(self.f3, width = 250)
 		
-		self.f31 = Frame( width = 250, height = 350)
-		self.f32 = Frame( width = 230, height = 350)
-		self.f33 = Frame( width = 230, height = 350)
-		self.f34 = Frame( width = 230, height = 350)
+		self.f31 = Frame( width = 250, height = 550)
+		self.f32 = Frame( width = 230, height = 550)
+		self.f33 = Frame( width = 230, height = 550)
+		self.f34 = Frame( width = 230, height = 550)
 		
-		self.f3nb.add(self.f31, text = 'Basic', padding = 5)
-		self.f3nb.add(self.f32, text = 'Text', padding = 5)
-		self.f3nb.add(self.f33, text = 'Functions', padding = 5)
-		self.f3nb.add(self.f34, text = 'Other', padding = 5)
+		self.f3nb.add(self.f31, text = 'Basic', padding = 5, sticky = 'wnes')
+		self.f3nb.add(self.f32, text = 'Text', padding = 5, sticky = 'wnes')
+		self.f3nb.add(self.f33, text = 'Functions', padding = 5, sticky = 'wnes')
+		self.f3nb.add(self.f34, text = 'Other', padding = 5, sticky = 'wnes')
 		
 		self.f4 = LabelFrame(self.root, text = 'Elements')
 		
@@ -145,6 +149,7 @@ class Main:
 		self.b2.grid(row=0,column = 2, padx= 3)
 		self.b3.grid(row=0,column = 3, padx= 3)
 		self.b4.grid(row=0,column = 4, padx= 3)
+		self.b6.grid(row=0,column = 5, padx= 3)
 		
 		self.f12.grid(row=0, column=1, sticky = (W,E), padx=5)
 		self.b5.grid(row=0, column = 0, padx=3)
@@ -155,13 +160,13 @@ class Main:
 		self.nb.grid(row=0, column=0)
 		
 		self.f3.grid(row=1, column=1, padx = 5, sticky = (N,W,E,S))
-		self.f3nb.grid(row=0,column=0)
+		self.f3nb.grid(row=0,column=0,sticky = (N,W,E,S) )
 		
 		self.f4.grid(row=2, column=1, padx = 5, sticky = (N,W,E,S))
 		
 		self.lb1.grid(row=0,column=0,sticky = (N,W,E,S))
 		
-		
+		self.loadRightMenuOptions()
 		self.MenuManager.createMenu()
 		
 		self.nb.bind('<<NotebookTabChanged>>', self.newMenuPressed)
@@ -250,6 +255,25 @@ class Main:
 		
 	def menuPopupEvent(self, event):
 		self.menuPopup.post(event.x_root, event.y_root)
+		
+	def loadRightMenuOptions(self):
+		self.rightMenuS 		= Menu(self.root, tearoff=0)
+		self.rightMenuS.add_command(label="Copy selected element", command = self.elementManager.copySelected )
+		self.rightMenuS.add_command(label="Paste element", command = self.elementManager.pasteSelected)
+		self.rightMenuS.add_command(label="Delete selected element")
+		self.rightMenuS.add_separator()
+		self.rightMenuS.add_command(label="Reset properties to default")
+		
+		self.rightMenu 		= Menu(self.root, tearoff=0)
+		self.rightMenu.add_command(label="Change background")
+		self.rightMenu.add_command(label="Paste element", command = self.elementManager.pasteSelected)
+		self.rightMenu.add_command(label="Delete all elements")
+		
+	def rightMenuPopupEventSelected(self, event):
+		self.rightMenuS.post(event.x_root, event.y_root)
+		
+	def rightMenuPopupEvent(self, event):
+		self.rightMenu.post(event.x_root, event.y_root)
 		
 	def coreLoadBackground(self):
 		if 'background' in self.canvasElements:

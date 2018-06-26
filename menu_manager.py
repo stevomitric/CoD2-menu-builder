@@ -35,7 +35,7 @@ class MenuManager:
 			'elements': {},
 			'name': 'Menu'+str(self.inx),
 			'background': 'background',
-			'colour': (0, 0, 0, 128),
+			'backImageColour': (0, 0, 0, 128),
 			'style': 'WINDOW_STYLE_EMPTY',
 			
 			'properties': copy.deepcopy(cod2_default_element_settings.menuSettings),
@@ -53,6 +53,8 @@ class MenuManager:
 		menu['canvas'].bind('<ButtonRelease-1>', self.GUI.elementManager.buttonRelease)
 		menu['canvas'].bind('<B1-Motion>', self.GUI.elementManager.buttonMotion)
 		
+		menu['canvas'].bind('<ButtonPress-3>', self.GUI.elementManager.rightButtonPress)
+		
 		
 		self.GUI.nb.add(menu['frame'], text = menu['name'], padding = 5)
 		
@@ -63,7 +65,7 @@ class MenuManager:
 	def updateBackImage(self, element):
 		if element['style']	== 'WINDOW_STYLE_FILLED':
 
-			element['imageFill'] = Image.new('RGBA', (640, 480), element['colour'] )
+			element['imageFill'] = Image.new('RGBA', (640, 480), element['backImageColour'] )
 			element['imageFillR'] = ImageTk.PhotoImage(element['imageFill'])
 			element['canvas'].itemconfigure(element['canvasFill'], image = element['imageFillR'])
 
