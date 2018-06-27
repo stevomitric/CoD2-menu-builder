@@ -15,6 +15,8 @@ from ttk			import *
 
 import cod2_default_element_settings
 
+from tkMessageBox	import showinfo
+
 class Properties:
 	def __init__(self, Manage):
 	
@@ -43,8 +45,18 @@ class Properties:
 		
 		element['properties'][property][0] = element['properties'][property][2].var.get()
 	
+		self.checkValid(element, property)
+	
 		if callProperty:
 			self.manage.updateOnProperty(property=property)
+	
+	def checkValid(self, element, property):
+		flags = element['properties'][property][1].split('|')
+		value = element['properties'][property][0]
+		
+		if 'CBN' in flags and value == '':
+			showinfo('Warning003', 'This property cannot be empty because it causes unpredictable stuff to happen.')
+			element['properties'][property][2].var.set('A')
 	
 	def setBadPropertyOption(self, elementID, property, element = None):
 		if element == None: element = self.manage.elements[elementID]

@@ -16,7 +16,7 @@ from threading	import Thread
 from PIL 		import Image, ImageTk
 
 from tkFileDialog	import askopenfilename, asksaveasfilename
-from tkMessageBox	import showinfo
+from tkMessageBox	import showinfo, askyesno
 
 import Tkinter as tk
 
@@ -38,9 +38,13 @@ class Main:
 			'ICONimage': 'data/icons/image.png',
 			'ICONblank': 'data/icons/blank.png',
 			'ICONmenu': 'data/icons/menu.png',
+			'ICONdeletemenu': 'data/icons/deletemenu.png',
+			'ICONaddmenu': 'data/icons/addmenu.png',
 			'ICONmoveg': 'data/icons/moveg.png',
 			'ICONinvisible': 'data/icons/invisible.png',
 			'ICONkeyboard': 'data/icons/keyboard.png',
+			'ICONslider': 'data/icons/slider.png',
+			'ICONlist': 'data/icons/list.png',
 		
 		
 			'CODgradient': 'data/gradient.png',
@@ -49,11 +53,11 @@ class Main:
 			'moveF': 'data/icons/moveF.png',
 			'background': 'data/transparent.png',
 			'nopreview': 'data/nopreview.png',
+			'slider': 'data/slider.png',
 		}
 		self.guiRawImageData = { }
 		
 		self.MenuManager = menu_manager.MenuManager(self)
-		
 		
 		
 	def GUIResizeImage(self, img, size):
@@ -94,9 +98,9 @@ class Main:
 		filemenu.add_command(label="Exit", command=self.root.quit)
 		self.menubar.add_cascade(label="File", menu=filemenu)
 		
-		self.menubar.add_cascade(label="Settings")
+		self.menubar.add_cascade(label="Settings", command = self.programSettings)
 		
-		self.menubar.add_cascade(label="Elements")
+		#self.menubar.add_cascade(label="Elements")
 		
 		
 		
@@ -119,10 +123,14 @@ class Main:
 		self.b3 = Button(self.f11, text = 'Rect', image = self.guiImages['ICONrectangle'], compound="left", width = 7, command = self.elementManager.createRectElement )
 		self.b4 = Button(self.f11, text = 'Image', image = self.guiImages['ICONimage'], compound="left", width = 7, command = self.imageUpload )
 		self.b6 = Button(self.f11, text = 'Field', image = self.guiImages['ICONkeyboard'], compound="left", width = 7, command = self.elementManager.createFieldElement )
+		self.b7 = Button(self.f11, text = 'Slider', image = self.guiImages['ICONslider'], compound="left", width = 7, command = self.elementManager.createSliderElement)
+		self.b8 = Button(self.f11, text = 'Multi', image = self.guiImages['ICONlist'], compound="left", width = 7, command = self.elementManager.createListElement)
 		
 		self.f12 = LabelFrame(self.root, text = 'Tools')
 		
 		self.b5 = Button(self.f12, text = 'Menu', image = self.guiImages['ICONmenu'], compound="left", width = 7, command = self.MenuManager.loadMenuProperties )
+		self.b9 = Button(self.f12, text = '', image = self.guiImages['ICONdeletemenu'], compound="left", width = 0, command =  self.deleteMenuPressed)
+		self.b10 = Button(self.f12, text = '', image = self.guiImages['ICONaddmenu'], compound="left", width = 0, command = self.MenuManager.createMenu )
 		
 		
 		self.f3 = LabelFrame(self.root, text = 'Properties', width = 240, height = 350)
@@ -150,9 +158,13 @@ class Main:
 		self.b3.grid(row=0,column = 3, padx= 3)
 		self.b4.grid(row=0,column = 4, padx= 3)
 		self.b6.grid(row=0,column = 5, padx= 3)
+		self.b7.grid(row=0,column = 6, padx= 3)
+		self.b8.grid(row=0,column = 7, padx= 3)
 		
 		self.f12.grid(row=0, column=1, sticky = (W,E), padx=5)
 		self.b5.grid(row=0, column = 0, padx=3)
+		self.b9.grid(row=0, column = 1, padx=3)
+		self.b10.grid(row=0, column = 2, padx=3)
 		
 		self.f2.grid(row=1, column=0, rowspan=2)
 		self.root.rowconfigure(1, weight=1)
@@ -172,7 +184,41 @@ class Main:
 		self.nb.bind('<<NotebookTabChanged>>', self.newMenuPressed)
 		self.lb1.bind('<<ListboxSelect>>', lambda _:self.elementManager.listboxSelect())
 		
+		self.root.bind('<KeyPress>', self.elementManager.keypress)
+		self.root.bind('<KeyRelease>', self.elementManager.keyrelease)
+		
 		self.root.mainloop()
+		
+	def programSettings(self):
+		top = Toplevel()
+		top.geometry('300x200')
+		top.title('Settings')
+		
+		top.snap = StringVar()
+		top.snap.set( str( self.elementManager.settings['snapping'] ) )
+		top.snap.trace('w', lambda a='',b='',c='' : self.changeSettings(top, 'snapping') )
+		top.autobbox = BooleanVar()
+		top.autobbox.set( str( self.elementManager.settings['autoUpdateBBOX'] ) )
+		top.autobbox.trace('w', lambda a='',b='',c='' : self.changeSettings(top, 'autoUpdateBBOX') )
+		
+		Label(top, text = 'Snapping: ').grid(row = 0, column = 0, padx=10,pady=10, sticky='w')
+		Entry(top, width = 5 , textvariable = top.snap).grid(row = 0, column = 1)
+		Label(top, text = 'Snap key (hold):   CTRL' ).grid(row = 0, column = 3, padx = 40)
+		
+		Checkbutton(top, variable = top.autobbox, text = 'Auto update element rec (BBOX) ').grid(row = 1, column = 0, padx=10,pady=5,columnspan=4, sticky='w')
+		
+	def changeSettings(self, top, key, value = ''):
+		try:
+			if key == 'snapping':
+				value = int(top.snap.get())
+			
+			elif key == 'autoUpdateBBOX':
+				value = top.autobbox.get()
+		except:
+			return
+		
+		self.elementManager.settings[key] = value
+		
 		
 	def exportMenu(self):
 		top = Toplevel()
@@ -275,6 +321,9 @@ class Main:
 		self.MenuManager.selectMenu( self.MenuManager.identifyMenuBasedOnName(name) )
 		
 	def deleteMenuPressed(self, *event):
+		res = askyesno('Confirm', 'Are you sure you want to delete this menu ?')
+		if not res: return
+	
 		self.MenuManager.removeMenu(self.nb.select())
 		
 	def loadMenuOptions(self):

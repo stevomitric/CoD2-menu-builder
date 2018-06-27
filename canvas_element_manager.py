@@ -35,10 +35,13 @@ class Manage:
 			'defaultPos': [640/2, 480/2],
 		
 			'autoUpdateBBOX': True,
+			'snapping': 20,
+			'isSnapping': False,
 		}
 		
 		self.selectedElement = -1
 		self.copiedElement = -1
+		self.keyPressed = {}
 	
 	def createRectElement(self):
 		element = {
@@ -164,7 +167,42 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)	
+	
+	def createSliderElement(self):
+		element = {
+			'type': 'slider',
+			'badArgument': [],
+			'name': 'slider',
+			'supportsScalle': 1,
+			'supportBackImage': 1,
+			
+			'properties': copy.deepcopy(cod2_default_element_settings.sliderSettings),
+			'image': self.GUI.guiRawImageData['slider'],
 		
+			'style': 'WINDOW_STYLE_EMPTY',
+			'text': 'Example Slider',
+			'colour': 'black',
+			'pos': self.settings['defaultPos'][:],
+			'rect': [0,0,128,24, 4, 4],
+			'size': 12,
+			'bold': '',
+			
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+		element['imageR'] = ImageTk.PhotoImage(element['image'])
+		
+		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
+		element['id'] = elementID
+		element['sliderImage'] = self.canvas.create_image(0, 0, image= element['imageR'], anchor = 'nw')
+		
+		self.initElementIcons(element)
+		self.elements[elementID] = element
+		self.selectElement(elementID)
+		self.propertiesManagment.updateElementList()
+		self.calculateCords(element)
+	
 	def createLabelElement(self):
 		element = {
 			'type': 'label',
@@ -175,6 +213,37 @@ class Manage:
 			'properties': copy.deepcopy(cod2_default_element_settings.labelSettings),
 		
 			'text': 'Example Text',
+			'colour': 'black',
+			'pos': self.settings['defaultPos'][:],
+			'rect': [0,0,128,24, 4, 4],
+			'size': 12,
+			'bold': '',
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+		
+		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
+		element['id'] = elementID
+		
+		self.initElementIcons(element)
+		self.elements[elementID] = element
+		self.selectElement(elementID)
+		self.propertiesManagment.updateElementList()
+		self.calculateCords(element)
+		
+	def createListElement(self):
+		element = {
+			'type': 'list',
+			'badArgument': [],
+			'name': 'list',
+			'supportsScalle': 1,
+			'supportBackImage': 1,
+		
+			'properties': copy.deepcopy(cod2_default_element_settings.listSettings),
+		
+			'style': 'WINDOW_STYLE_EMPTY',
+			'text': 'You have chosen: ',
 			'colour': 'black',
 			'pos': self.settings['defaultPos'][:],
 			'rect': [0,0,128,24, 4, 4],
@@ -222,6 +291,9 @@ class Manage:
 		if element['type'] == 'field':
 			element['rect'][2] += 100
 		
+		if element['type'] == 'slider':
+			element['rect'][2] += 150
+		
 		element['properties']['rect'][2].var.set(' '.join(str(x) for x in element['rect']))
 		
 		self.calculateCords(element, updateImage = True)
@@ -261,6 +333,13 @@ class Manage:
 					self.canvas.itemconfigure(element['id'], image = element['imageR'])
 				except: pass
 		
+		if element['type'] == 'slider':
+			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
+			value = x2-x1
+			element['imageR'] = ImageTk.PhotoImage(element['image'])
+			self.canvas.coords(element['sliderImage'], element['pos'][0]+value,  element['pos'][1])
+			self.canvas.itemconfigure(element['sliderImage'], image = element['imageR'])
+		
 		if element.has_key('supportBackImage'):
 			if updateImage:
 
@@ -288,6 +367,10 @@ class Manage:
 			if element['text'] != newValue:
 				element['text'] = newValue
 				self.canvas.itemconfigure(element['id'], text = element['text'])
+				
+				if element['type'] == 'list':
+					self.updateListText(element)
+				
 				self.propertiesManagment.updateElementList()
 				self.updateRectSizeBasedOnFont(element)
 				
@@ -346,16 +429,21 @@ class Manage:
 		
 		
 		
-		# Font colour (forecolor)
+		# forecolor
 		if element['properties'].has_key('forecolor'):
 			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['forecolor'][2].var.get())
 
 			if element['colour'] != newValue or 'forecolor' in element['badArgument']:
 				try:
-					rgb = self.getRGBA(newValue)[0:3]
+					rgba = self.getRGBA(newValue)
+					rgb = rgba[0:3]
 				except:
 					self.propertiesManagment.setBadPropertyOption(element['id'], 'forecolor')
 					return
+					
+				if element['type'] == 'slider':
+					self.reColorImage(rgba, element['image'])
+					self.calculateCords(element, updateImage = True)
 					
 				element['colour'] = newValue
 				self.canvas.itemconfigure(element['id'], fill = self.RGBtoHex(rgb) )
@@ -419,6 +507,18 @@ class Manage:
 			if element['style'] != newValue:
 				element['style'] = newValue
 				self.calculateCords(element, updateImage = True)
+				
+		# dvarFloatList
+		if element['properties'].has_key('dvarFloatList') and property == 'dvarFloatList':
+			self.updateListText(element)
+		
+	def updateListText(self, element, property = 'dvarFloatList'):
+		try:
+			value = element['properties'][property][0].replace('{', '').replace(' ', '').split('"')[1]
+			self.canvas.itemconfigure(element['id'], text = element['text'] + " " + value)
+			self.propertiesManagment.setGoodPropertyOption(element['id'], property)
+		except:
+			self.propertiesManagment.setBadPropertyOption(element['id'], property)
 		
 	def updateOnPropertyNonElement(self, element, property):
 		
@@ -589,19 +689,27 @@ class Manage:
 		
 	def buttonMotion(self, event):
 		if not self.selectedElement in self.elements:
-			return	
+			return
 		element = self.elements[self.selectedElement]
 	
 		if element.has_key('scalling'):
 			element['rect'][2] += event.x - element['scalling'][0]
 			element['rect'][3] += event.y - element['scalling'][1]
 			element['scalling'] = event.x, event.y
+			
+			if self.settings['isSnapping']:
+				element['rect'][2], element['rect'][3] = self.fixSnap(element['rect'][2], element['rect'][3])
+				element['scalling'] = self.fixSnap(event.x, event.y)
+			
 			self.calculateCords(element, updateImage = True)
 			self.updateRectValue(self.selectedElement)
 			
 		else:
 			element['pos'][0] = event.x - element['offsetMoveX']
 			element['pos'][1] = event.y - element['offsetMoveY']
+		
+			if self.settings['isSnapping']:
+				element['pos'][0],element['pos'][1] = self.fixSnap(element['pos'][0],element['pos'][1])
 		
 			self.updatePosiotionValue(self.selectedElement)
 		
@@ -640,6 +748,40 @@ class Manage:
 		
 			self.copyDataToFrom(ID1, self.copiedElement)
 		
+		
+	def reColorImage(self, rgb, img):
+		pixels = img.load() # create the pixel map
+		for i in range(img.size[0]): # for every pixel:
+			for j in range(img.size[1]):
+				pixels[i,j] = (rgb[0], rgb[1], rgb[2], pixels[i,j][3])
+		
+	def fixSnap(self, x, y=None):
+		snap = self.settings['snapping']
+		
+		difX, difY = x%snap, 0
+		if y != None: difY = y%snap
+		if (difX > snap/2): difX = - (snap-difX)
+		if (y!=None and difY > snap/2): difY = - (snap-difY)
+		
+		x -= difX
+		if (y!=None): y -= difY
+
+		if y != None:
+			return (x,y)
+		return x
+		
+	def keypress(self, event):
+		self.keyPressed[event.keycode] = 1
+		
+		if event.keycode == 17:
+			self.settings['isSnapping'] = True
+		
+	def keyrelease(self, event):
+		if event.keycode in self.keyPressed:
+			self.keyPressed.pop(event.keycode)
+		
+		if event.keycode == 17:
+			self.settings['isSnapping'] = False
 		
 	def RGBtoHex(self, rgb):
 		return '#%02x%02x%02x' % rgb
