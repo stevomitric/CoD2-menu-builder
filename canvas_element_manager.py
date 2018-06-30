@@ -73,7 +73,7 @@ class Manage:
 		
 		return elementID
 		
-	def imageSettings(self, imageID):
+	def createImageElement(self, imageID=''):
 		if not self.GUI.guiRawImageData.has_key(imageID):
 			self.GUI.guiRawImageData[imageID] = Image.new('RGBA', (1, 1), (0,0,0,0) )
 	
@@ -105,6 +105,7 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)	
+		return elementID
 		
 	def createButtonElement(self):
 		element = {
@@ -136,7 +137,8 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)
-	
+		return elementID
+		
 	def createFieldElement(self):
 		element = {
 			'type': 'field',
@@ -167,6 +169,7 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)	
+		return elementID
 	
 	def createSliderElement(self):
 		element = {
@@ -202,6 +205,7 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)
+		return elementID
 	
 	def createLabelElement(self):
 		element = {
@@ -231,6 +235,8 @@ class Manage:
 		self.selectElement(elementID)
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)
+		
+		return elementID
 		
 	def createListElement(self):
 		element = {
@@ -263,6 +269,8 @@ class Manage:
 		self.propertiesManagment.updateElementList()
 		self.calculateCords(element)
 	
+		return elementID
+		
 	def initElementIcons(self, element):
 		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
 		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="black", width=2, state = 'hidden')
@@ -299,16 +307,16 @@ class Manage:
 		self.calculateCords(element, updateImage = True)
 		
 	def calculateCords(self, element, updateImage = False):
-		self.canvas.coords(element['bbox'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
+		self.canvas.coords(element['bbox'], element['pos'][0]+element['rect'][0],  element['pos'][1]+element['rect'][1], element['pos'][0]+ element['rect'][2]+element['rect'][0],  element['pos'][1]+element['rect'][3]+element['rect'][1] )
 
-		self.canvas.coords(element['id'], element['pos'][0],  element['pos'][1] )
-		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
-		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][2]/2,  element['pos'][1]+ element['rect'][3]/2)
-		self.canvas.coords(element['moveG'], element['pos'][0]+element['rect'][2],  element['pos'][1]+ element['rect'][3])
+		self.canvas.coords(element['id'], element['pos'][0]+element['rect'][0],  element['pos'][1]+element['rect'][1] )
+		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][0]+element['rect'][2]/2,  element['pos'][1]+element['rect'][1]+ element['rect'][3]/2)
+		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][0]+element['rect'][2]/2,  element['pos'][1]+element['rect'][1]+element['rect'][3]/2)
+		self.canvas.coords(element['moveG'], element['pos'][0]+element['rect'][2]+element['rect'][0],  element['pos'][1]+ element['rect'][3]+element['rect'][1])
 		self.canvas.coords(element['invisible'], element['pos'][0],  element['pos'][1])
 		
 		if element.has_key('border'):
-			self.canvas.coords(element['border'], element['pos'][0],  element['pos'][1],  element['pos'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][3] )
+			self.canvas.coords(element['border'], element['pos'][0]+element['rect'][0],  element['pos'][1]+element['rect'][1],  element['pos'][0]+element['rect'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][1]+element['rect'][3] )
 		if element['properties'].has_key('textaligny') and element['properties']['textaligny'][2] != None:
 			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
 			value = y2-y1
@@ -376,7 +384,7 @@ class Manage:
 				
 		
 		# Position (origin)
-		if element['properties'].has_key('origin'):
+		if element['properties'].has_key('origin') and property == 'origin':
 			newValue = element['properties']['origin'][2].var.get()
 			if str(element['pos'][0]) + " " + str(element['pos'][1]) != newValue:
 				try:
@@ -510,7 +518,18 @@ class Manage:
 				
 		# dvarFloatList
 		if element['properties'].has_key('dvarFloatList') and property == 'dvarFloatList':
-			self.updateListText(element)
+			self.updateListText(element)	
+			
+		# textalign
+		if element['properties'].has_key('textalign') and property == 'textalign':
+			newValue = element['properties']['textalign'][2].var.get()
+			
+			if newValue == 'ITEM_ALIGN_LEFT':
+				self.canvas.itemconfigure(element['id'], anchor = 'nw')
+			elif newValue == 'ITEM_ALIGN_CENTER':
+				self.canvas.itemconfigure(element['id'], anchor = 'n')
+			elif newValue == 'ITEM_ALIGN_RIGHT':
+				self.canvas.itemconfigure(element['id'], anchor = 'ne')
 		
 	def updateListText(self, element, property = 'dvarFloatList'):
 		try:
@@ -556,7 +575,7 @@ class Manage:
 	def buttonPress(self, event):
 		if self.selectedElement in self.elements:
 			element = self.elements[self.selectedElement]
-			if self.inside(event.x, event.y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3]) ) ):
+			if self.inside(event.x, event.y, ((element['pos'][0]+element['rect'][0], element['pos'][1]+element['rect'][1] ), (element['pos'][0]+element['rect'][0]+element['rect'][2], element['pos'][1]+element['rect'][1]+element['rect'][3]) ) ):
 				pass
 			else:
 				self.selectOnPress(event.x, event.y)
@@ -576,12 +595,12 @@ class Manage:
 		for elementID in self.elements:
 			element = self.elements[elementID]
 			
-			if element.has_key('supportsScalle') and self.selectedElement != -1 and self.inside(x, y, ((element['pos'][0]+element['rect'][2]-10, element['pos'][1] + element['rect'][3]-10 ), (element['pos'][0]+element['rect'][2]+10, element['pos'][1]+element['rect'][3]+10) ) ):
+			if element.has_key('supportsScalle') and self.selectedElement != -1 and self.inside(x, y, ((element['pos'][0]+element['rect'][0]+element['rect'][2]-10, element['pos'][1]+element['rect'][1] + element['rect'][3]-10 ), (element['pos'][0]+element['rect'][0]+element['rect'][2]+10, element['pos'][1]+element['rect'][1]+element['rect'][3]+10) ) ):
 				element['scalling'] = [x,y]
 
 				return
 				
-			elif self.inside(x, y, ((element['pos'][0], element['pos'][1] ), (element['pos'][0]+element['rect'][2], element['pos'][1]+element['rect'][3]) ) ):
+			elif self.inside(x, y, ((element['pos'][0]+element['rect'][0], element['pos'][1]+element['rect'][1] ), (element['pos'][0]+element['rect'][0]+element['rect'][2], element['pos'][1]+element['rect'][1]+element['rect'][3]) ) ):
 				self.selectElement(elementID)
 				return
 	
@@ -721,7 +740,7 @@ class Manage:
 		self.copiedElement = self.selectedElement
 		
 	def copyDataToFrom(self, ID1, ID2):
-		doNotCopy = ['bbox', 'border', 'move', 'moveF', 'moveG', 'invisible', 'backImageC', 'id', 'imageR']
+		doNotCopy = ['bbox', 'border', 'move', 'moveF', 'moveG', 'invisible', 'backImageC', 'id', 'imageR', 'sliderImage']
 		
 		element1 = self.elements[ID1]
 		element2 = self.elements[ID2]
@@ -737,6 +756,8 @@ class Manage:
 			else:
 				element1[data] = copy.deepcopy(element2[data])
 		
+		self.calculateCords(element1, updateImage = True)
+		
 	def pasteSelected(self):
 		if self.copiedElement not in self.elements:
 			return
@@ -745,9 +766,53 @@ class Manage:
 		
 		if element['type'] == 'rect':
 			ID1 = self.createRectElement()
-		
+			self.copyDataToFrom(ID1, self.copiedElement)
+		elif element['type'] == 'label':
+			ID1 = self.createLabelElement()
+			self.copyDataToFrom(ID1, self.copiedElement)
+		elif element['type'] == 'image':
+			ID1 = self.createImageElement()
+			self.copyDataToFrom(ID1, self.copiedElement)
+		elif element['type'] == 'button':
+			ID1 = self.createButtonElement()
+			self.copyDataToFrom(ID1, self.copiedElement)
+		elif element['type'] == 'slider':
+			ID1 = self.createSliderElement()
+			self.copyDataToFrom(ID1, self.copiedElement)
+		elif element['type'] == 'field':
+			ID1 = self.createFieldElement()
+			self.copyDataToFrom(ID1, self.copiedElement)
+		elif element['type'] == 'list':
+			ID1 = self.createListElement()
 			self.copyDataToFrom(ID1, self.copiedElement)
 		
+		
+	def deleteAllElements(self):
+		for element in self.elements.copy():
+			self.deleteElement(self.elements[element])
+	
+	def deleteElement(self, element = None):
+		if element == None and self.selectedElement not in self.elements:
+			return
+		
+		if not element:
+			element = self.elements[self.selectedElement]
+		
+		canvasElements = ['bbox', 'border', 'move', 'moveF', 'moveG', 'invisible',  'backImageC', 'id', 'sliderImage']
+		
+		for canvasElement in canvasElements:
+			if element.has_key(canvasElement):
+				try:
+					self.canvas.delete(element[canvasElement])
+				except :pass
+		
+		self.disselectElement()
+		self.propertiesManagment.clearProperties()
+		
+		if element['id'] in self.elements:
+			self.elements.pop(element['id'])
+		
+		self.propertiesManagment.updateElementList()
 		
 	def reColorImage(self, rgb, img):
 		pixels = img.load() # create the pixel map

@@ -44,7 +44,7 @@ class Properties:
 		element = self.manage.elements[elementID]
 		
 		element['properties'][property][0] = element['properties'][property][2].var.get()
-	
+
 		self.checkValid(element, property)
 	
 		if callProperty:

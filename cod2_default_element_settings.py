@@ -86,6 +86,7 @@ labelSettings = {
 	'textaligny':	['20', 'L', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
+	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
 }
 
 
@@ -125,6 +126,7 @@ buttonSettings = {
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
 	'textaligny':	['20', 'L', None, None],
+	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'dvartest':		['', 'E|S|DNIIN', None, None],
@@ -144,10 +146,10 @@ menuSettings = {
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration' ]
+elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration' ]
 
 elementGroup = {
-	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor'],
+	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor', 'textalign'],
 	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor', 'background'],
 	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar', 'dvarfloat', 'dvarFloatList'],
 	'other': ['maxPaintChars',]
@@ -182,7 +184,7 @@ globalDefinitions = {
 		'ITEM_ALIGN_LEFT':				'0',
 		'ITEM_ALIGN_CENTER':			'1',
 		'ITEM_ALIGN_RIGHT':				'2',
-		'ITEM_ALIGN_CENTER2':			'3',
+		#'ITEM_ALIGN_CENTER2':			'3',
 	},
 	
 	'windowborder': {

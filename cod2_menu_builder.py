@@ -87,7 +87,7 @@ class Main:
 		filemenu 		= Menu(self.menubar, tearoff=0)
 		
 		importmenu 		= Menu(filemenu, tearoff=0)
-		importmenu.add_command(label="Menu file (.menu)")
+		importmenu.add_command(label="Menu file (.menu)", command = translator.importMenuFile )
 		
 		exportmenu 		= Menu(filemenu, tearoff=0)
 		exportmenu.add_command(label="Menu file (.menu)", command = self.exportMenu )
@@ -187,6 +187,8 @@ class Main:
 		self.root.bind('<KeyPress>', self.elementManager.keypress)
 		self.root.bind('<KeyRelease>', self.elementManager.keyrelease)
 		
+		#translator.importMenuFile(self)
+		
 		self.root.mainloop()
 		
 	def programSettings(self):
@@ -285,7 +287,7 @@ class Main:
 		var.trace('w', lambda a='',b='',c='',self=self,top=top: self.onUpdateImage(top) )
 		
 	def getValue(self, top):
-		self.elementManager.imageSettings( 'COD'+top.cb.var.get() )
+		self.elementManager.createImageElement( 'COD'+top.cb.var.get() )
 		top.destroy()
 		
 	def onUpdateImage(self, top):
@@ -340,14 +342,16 @@ class Main:
 		self.rightMenuS 		= Menu(self.root, tearoff=0)
 		self.rightMenuS.add_command(label="Copy selected element", command = self.elementManager.copySelected )
 		self.rightMenuS.add_command(label="Paste element", command = self.elementManager.pasteSelected)
-		self.rightMenuS.add_command(label="Delete selected element")
+		self.rightMenuS.add_command(label="Delete selected element", command =self.elementManager.deleteElement )
+		self.rightMenuS.add_command(label="Delete all elements", command = self.elementManager.deleteAllElements)
 		self.rightMenuS.add_separator()
 		self.rightMenuS.add_command(label="Reset properties to default")
+
 		
 		self.rightMenu 		= Menu(self.root, tearoff=0)
 		self.rightMenu.add_command(label="Change background")
 		self.rightMenu.add_command(label="Paste element", command = self.elementManager.pasteSelected)
-		self.rightMenu.add_command(label="Delete all elements")
+		self.rightMenu.add_command(label="Delete all elements", command = self.elementManager.deleteAllElements)
 		
 	def rightMenuPopupEventSelected(self, event):
 		self.rightMenuS.post(event.x_root, event.y_root)
