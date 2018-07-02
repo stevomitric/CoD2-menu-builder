@@ -12,6 +12,9 @@ This code has no licence, feel free to do whatever you want with it.
 
 import cod2_default_element_settings
 
+def log(msg, state = 'INFO'):
+	print state.upper() + ': ' + msg
+
 def _calculateTabs(value):
 	TABMAX = 7
 
@@ -119,20 +122,89 @@ def processData(data):
 	newData = []
 	
 	for line in data:
+		# Separete in new lines
 		segments = getSegments(line)
 		if segments:
 			newData.append(segments)
 
+		# all in one
+		#segments = getSegments(line)
+		#for segment in segments:
+		#	if segment:
+		#		newData.append(segment)
+		
+		
 	return newData
 	
-def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/test.menu' ):
+
+def loadItemDef(GUI, data, inx):
+	bracketNum = 0
+	
+	elementID = GUI.elementManager.createItemElement()
+	element = GUI.elementManager.elements[elementID]
+	
+	element['properties']['text'][2].var.set('')
+	
+	for i in range(inx, len(data)):
+		item = data[i][0]
+		value = ' '.join(data[i][1:]).replace('"', '')
+		
+		if item == '{':
+			bracketNum += 1
+		elif item == '}':
+			bracketNum -= 1
+		elif item in element['properties'] and bracketNum == 1:
+			element['properties'][item][2].var.set(value)
+			element['properties'][item][0] = value
+			
+		if not bracketNum:
+			break
+	
+def loadMenuDef(GUI, data, inx):
+	bracketNum = 0
+	
+	menu = GUI.MenuManager.createMenu()
+	GUI.nb.select(menu['id'])
+	GUI.MenuManager.selectMenu(menu)
+	
+	for i in range(inx, len(data)):
+		item = data[i][0]
+		value = ' '.join(data[i][1:]).replace('"', '')
+
+		
+		if item == '{':
+			bracketNum += 1
+		elif item == '}':
+			bracketNum -= 1
+		elif item in menu['properties'] and bracketNum == 1:
+			log('Menu property: '+ item+ ', value: '+ value)
+		elif item.lower() == 'itemdef':
+			loadItemDef(GUI, data, i+1)
+		
+		
+		if not bracketNum:
+			break
+			
+def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu' ):
 	file = open(filePath, 'rb')
 	data = file.read().replace('\r', '')
 	file.close()
 	
 	data = processData(data)
-	print data
 	
+	
+	for i in range(len(data)):
+		for i2 in range(len(data[i])):
+			item = data[i][i2].lower()
+			
+			if item == '#define':
+				variable = data[i][1]
+				value = ' '.join(data[i][2:])
+			
+				cod2_default_element_settings.globalDefinitions['custom'][variable] = value
+			
+			if item == 'menudef':
+				loadMenuDef(GUI, data, i+1)
 	
 	
 	

@@ -48,7 +48,7 @@ class Properties:
 		self.checkValid(element, property)
 	
 		if callProperty:
-			self.manage.updateOnProperty(property=property)
+			self.manage.updateOnProperty(element = element, property=property)
 	
 	def checkValid(self, element, property):
 		flags = element['properties'][property][1].split('|')
@@ -162,8 +162,8 @@ class Properties:
 	
 				widget.var = var
 	
-				if elementID != None: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID, False) )
-				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element, False))
+				if elementID != None: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, elementID = elementID: self.entryCallback(property, elementID, True) )
+				else: widget.var.trace('w', lambda a=0,b=0,c=0,d=0,e=0,f=0, self=self, property = property, element = element: self.entryCallbackNonElementProperty(property, element, True))
 	
 			element['properties'][property][2] = widget
 	

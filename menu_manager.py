@@ -60,8 +60,12 @@ class MenuManager:
 		
 		self.Menus.append(menu)
 		
+		menu['id'] = self.GUI.nb.tabs()[-1]
+		
 		#self.selectMenu(menu)
 
+		return menu
+		
 	def updateBackImage(self, element):
 		if element['style']	== 'WINDOW_STYLE_FILLED':
 

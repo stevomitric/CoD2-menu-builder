@@ -34,9 +34,11 @@ class Manage:
 		self.settings = {
 			'defaultPos': [640/2, 480/2],
 		
-			'autoUpdateBBOX': True,
+			'autoUpdateBBOX': False,
 			'snapping': 20,
 			'isSnapping': False,
+			
+			'originPoint': [0 ,0],
 		}
 		
 		self.selectedElement = -1
@@ -271,6 +273,44 @@ class Manage:
 	
 		return elementID
 		
+	def createItemElement(self):
+		element = {
+			'type': 'item',
+			'badArgument': [],
+			'name': 'item',
+			'supportsScalle': 1,
+			'supportBackImage': 1,
+		
+			'properties': copy.deepcopy(cod2_default_element_settings.itemSettings),
+
+			'image': Image.new('RGBA', (1,1), (0,0,0,1) ),
+			'imageOriginal': Image.new('RGBA', (1,1), (0,0,0,1) ),
+			'imageR': '',
+			'background': '',
+			
+			'style': 'WINDOW_STYLE_EMPTY',
+			'colour': 'black',
+			'text': 'Example Button',
+			'pos': [0,0],
+			'rect': [0,0,128,24, 4, 4],
+			'size': 12,
+			'bold': '',
+			
+			'offsetMoveX': 0,
+			'offsetMoveY': 0,
+		}
+
+		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
+		element['id'] = elementID
+		
+		self.initElementIcons(element)
+		self.elements[elementID] = element
+		self.selectElement(elementID)
+		self.propertiesManagment.updateElementList()
+		self.calculateCords(element)
+		
+		return elementID
+		
 	def initElementIcons(self, element):
 		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
 		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="black", width=2, state = 'hidden')
@@ -280,7 +320,10 @@ class Manage:
 		element['invisible'] = self.canvas.create_image(0, 0, image=self.images['ICONinvisible'], state = 'hidden')
 		
 		if not element.has_key('supportsScalle'):
-			self.canvas.itemconfigure(element['moveG'], image = '')
+			self.canvas.itemconfigure(element['moveG'], image = '')	
+			
+		if element.has_key('background'):
+			element['background'] = self.canvas.create_image(0, 0, image='', anchor = 'nw')
 	
 		if element.has_key('supportBackImage'):
 			element['backImage'] = Image.new('RGBA', (200, 200), (0,0,0,128) )
@@ -307,23 +350,28 @@ class Manage:
 		self.calculateCords(element, updateImage = True)
 		
 	def calculateCords(self, element, updateImage = False):
-		self.canvas.coords(element['bbox'], element['pos'][0]+element['rect'][0],  element['pos'][1]+element['rect'][1], element['pos'][0]+ element['rect'][2]+element['rect'][0],  element['pos'][1]+element['rect'][3]+element['rect'][1] )
+		self.calculateOriginPoint(element)
+	
+		self.canvas.coords(element['bbox'], (element['pos'][0]+element['originPoint'][0]+element['rect'][0]),  (element['pos'][1]+element['originPoint'][1]+element['rect'][1]), (element['pos'][0]+element['originPoint'][0]+ element['rect'][2]+element['rect'][0]),  (element['pos'][1]+element['originPoint'][1]+element['rect'][3]+element['rect'][1]) )
 
-		self.canvas.coords(element['id'], element['pos'][0]+element['rect'][0],  element['pos'][1]+element['rect'][1] )
-		self.canvas.coords(element['move'], element['pos'][0]+element['rect'][0]+element['rect'][2]/2,  element['pos'][1]+element['rect'][1]+ element['rect'][3]/2)
-		self.canvas.coords(element['moveF'], element['pos'][0]+element['rect'][0]+element['rect'][2]/2,  element['pos'][1]+element['rect'][1]+element['rect'][3]/2)
-		self.canvas.coords(element['moveG'], element['pos'][0]+element['rect'][2]+element['rect'][0],  element['pos'][1]+ element['rect'][3]+element['rect'][1])
-		self.canvas.coords(element['invisible'], element['pos'][0],  element['pos'][1])
+		self.canvas.coords(element['id'], element['pos'][0]+element['originPoint'][0]+element['rect'][0],  element['pos'][1]+element['originPoint'][1]+element['rect'][1] )
+		self.canvas.coords(element['move'], element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2]/2,  element['pos'][1]+element['originPoint'][1]+element['rect'][1]+ element['rect'][3]/2)
+		self.canvas.coords(element['moveF'], element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2]/2,  element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3]/2)
+		self.canvas.coords(element['moveG'], element['pos'][0]+element['originPoint'][0]+element['rect'][2]+element['rect'][0],  element['pos'][1]+element['originPoint'][1]+ element['rect'][3]+element['rect'][1])
+		self.canvas.coords(element['invisible'], element['pos'][0]+element['originPoint'][0],  element['pos'][1]+element['originPoint'][1])
 		
 		if element.has_key('border'):
-			self.canvas.coords(element['border'], element['pos'][0]+element['rect'][0],  element['pos'][1]+element['rect'][1],  element['pos'][0]+element['rect'][0]+ element['rect'][2],  element['pos'][1]+element['rect'][1]+element['rect'][3] )
+			self.canvas.coords(element['border'], element['pos'][0]+element['originPoint'][0]+element['rect'][0],  element['pos'][1]+element['originPoint'][1]+element['rect'][1],  element['pos'][0]+element['originPoint'][0]+element['rect'][0]+ element['rect'][2],  element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3] )
 		if element['properties'].has_key('textaligny') and element['properties']['textaligny'][2] != None:
 			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
 			value = y2-y1
 			element['properties']['textaligny'][2].var.set(str(value))
 			
 		if element.has_key('supportBackImage'):
-			self.canvas.coords(element['backImageC'], element['pos'][0],  element['pos'][1] )
+			self.canvas.coords(element['backImageC'], element['pos'][0]+element['originPoint'][0],  element['pos'][1]+element['originPoint'][1] )
+			
+		if element.has_key('background'):
+			self.canvas.coords(element['background'], element['pos'][0]+element['originPoint'][0],  element['pos'][1]+element['originPoint'][1] )
 		
 		if element['type'] == 'rect':
 			if updateImage:
@@ -333,25 +381,30 @@ class Manage:
 					self.canvas.itemconfigure(element['id'], image = element['imageR'])
 				except: pass
 		
-		if element['type'] == 'image':
+		if element['type'] == 'image' or element['properties'].has_key('background'):
 			if updateImage:
 				try:
 					element['image'] = element['imageOriginal'].resize((element['rect'][2], element['rect'][3]), Image.ANTIALIAS )
 					element['imageR'] = ImageTk.PhotoImage(element['image'])
-					self.canvas.itemconfigure(element['id'], image = element['imageR'])
+					if element['type'] == 'image': self.canvas.itemconfigure(element['backImageC'], image = element['imageR'])
+					else: self.canvas.itemconfigure(element['background'], image = element['imageR'])
 				except: pass
-		
+				
+			if element['style'] != 'WINDOW_STYLE_SHADER':
+				if element['type'] == 'image': self.canvas.itemconfigure(element['backImageC'], image = '')
+				else: self.canvas.itemconfigure(element['background'], image = '' )
+					
 		if element['type'] == 'slider':
 			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
 			value = x2-x1
 			element['imageR'] = ImageTk.PhotoImage(element['image'])
-			self.canvas.coords(element['sliderImage'], element['pos'][0]+value,  element['pos'][1])
+			self.canvas.coords(element['sliderImage'], element['pos'][0]+element['originPoint'][0]+value,  element['pos'][1]+element['originPoint'][1])
 			self.canvas.itemconfigure(element['sliderImage'], image = element['imageR'])
 		
 		if element.has_key('supportBackImage'):
 			if updateImage:
 
-				if element['style'] == 'WINDOW_STYLE_EMPTY':
+				if element['style'] != 'WINDOW_STYLE_FILLED':
 					self.canvas.itemconfigure(element['backImageC'], image = '')
 				else:
 					try:
@@ -368,7 +421,7 @@ class Manage:
 				return
 			
 			element = self.elements[self.selectedElement]
-		
+
 		# Text
 		if element['properties'].has_key('text'):
 			newValue = element['properties']['text'][2].var.get()
@@ -385,7 +438,7 @@ class Manage:
 		
 		# Position (origin)
 		if element['properties'].has_key('origin') and property == 'origin':
-			newValue = element['properties']['origin'][2].var.get()
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['origin'][2].var.get())
 			if str(element['pos'][0]) + " " + str(element['pos'][1]) != newValue:
 				try:
 					element['pos'] = [int(newValue.split(' ')[0]), int(newValue.split(' ')[1])]
@@ -396,12 +449,12 @@ class Manage:
 		
 		# Rectangle
 		if element['properties'].has_key('rect'):
-			newValue = element['properties']['rect'][2].var.get()
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['rect'][2].var.get())
 			if str(element['rect']).replace('[','').replace(']', '').replace(',','') != newValue or 'rect' in element['badArgument']:
 				try:
 					element['rect'] = [int(newValue.split(' ')[0]), int(newValue.split(' ')[1]), int(newValue.split(' ')[2]), int(newValue.split(' ')[3]), int(newValue.split(' ')[4]) , int(newValue.split(' ')[5])]
-					if element['rect'][4] != 4 or element['rect'][5] != 4:
-						tkMessageBox.showinfo('Warning 001', 'Changing "rect" value may result in unwanted positioning of elements. The last two arguments represent widget alignment. They have been set to HORIZONTAL_ALIGN_FULLSCREEN and VERTICAL_ALIGN_FULLSCREEN (4 4) which means that item will "stretch", following players aspect-ratio.')
+					if element['rect'][4] ==5  or element['rect'][5] == 5 or element['rect'][4] ==6  or element['rect'][5] == 6:
+						tkMessageBox.showinfo('Warning 001', '''You have set elements alignment to "noscale" and what that means is positional and size properties of element will not change on different resolutions (different from 640x480). This is probably not what you wanted (unles you know what youre doing) ''')
 				except:
 					self.propertiesManagment.setBadPropertyOption(element['id'], 'rect')
 					return
@@ -413,7 +466,7 @@ class Manage:
 		# Font size (textscale)
 		if element['properties'].has_key('textscale'):
 			try:
-				newValue = float(cod2_default_element_settings.getValueFromKey(element['properties']['textscale'][2].var.get()))
+				newValue = float(cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['textscale'][2].var.get()))
 			except:
 				newValue = element['size']
 				self.propertiesManagment.setBadPropertyOption(element['id'], 'textscale')
@@ -428,7 +481,7 @@ class Manage:
 		
 		# bold 
 		if element['properties'].has_key('textfont'):
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['textfont'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['textfont'][2].var.get())
 		
 			if element['bold'] != newValue:
 				element['bold'] = newValue
@@ -439,7 +492,7 @@ class Manage:
 		
 		# forecolor
 		if element['properties'].has_key('forecolor'):
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['forecolor'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['forecolor'][2].var.get())
 
 			if element['colour'] != newValue or 'forecolor' in element['badArgument']:
 				try:
@@ -468,7 +521,7 @@ class Manage:
 		
 		# Border
 		if element['properties'].has_key('border') and property == 'border':
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['border'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['border'][2].var.get())
 			if newValue == '1':
 				self.canvas.itemconfigure(element['border'], state = 'normal')
 			elif newValue == '0':
@@ -476,7 +529,7 @@ class Manage:
 				
 		# Bordercolour
 		if element['properties'].has_key('bordercolor') and property == 'bordercolor':
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['bordercolor'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['bordercolor'][2].var.get())
 			try:
 				rgb = self.getRGBA(newValue)[0:3]
 			except:
@@ -488,7 +541,7 @@ class Manage:
 		
 		# Backcolour
 		if element['properties'].has_key('backcolor') and property == 'backcolor':
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['backcolor'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['backcolor'][2].var.get())
 			try:
 				rgba = self.getRGBA(newValue)[:]
 			except:
@@ -501,7 +554,7 @@ class Manage:
 		
 		# Visible
 		if element['properties'].has_key('visible') and property == 'visible':
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['visible'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['visible'][2].var.get())
 			
 			if newValue == '1':
 				self.canvas.itemconfigure(element['invisible'], state = 'hidden')
@@ -530,6 +583,19 @@ class Manage:
 				self.canvas.itemconfigure(element['id'], anchor = 'n')
 			elif newValue == 'ITEM_ALIGN_RIGHT':
 				self.canvas.itemconfigure(element['id'], anchor = 'ne')
+				
+		# background
+		if element['properties'].has_key('background') and property == 'background':
+			newValue = element['properties']['background'][2].var.get()
+			if not newValue.startswith('COD'): newValue  = 'COD' + newValue
+			
+			if self.GUI.guiRawImageData.has_key(newValue):
+				element['imageOriginal'] = self.GUI.guiRawImageData[newValue]
+				element['image'] = self.GUI.guiRawImageData[newValue]
+		
+				element['imageR'] = ImageTk.PhotoImage(element['image'])
+		
+				self.calculateCords(element, updateImage = True)
 		
 	def updateListText(self, element, property = 'dvarFloatList'):
 		try:
@@ -560,7 +626,7 @@ class Manage:
 			
 		# Backcolour
 		if element['properties'].has_key('backcolor') and property == 'backcolor':
-			newValue = cod2_default_element_settings.getValueFromKey(element['properties']['backcolor'][2].var.get())
+			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['backcolor'][2].var.get())
 			try:
 				rgba = self.getRGBA(newValue)[:]
 			except:
@@ -575,7 +641,7 @@ class Manage:
 	def buttonPress(self, event):
 		if self.selectedElement in self.elements:
 			element = self.elements[self.selectedElement]
-			if self.inside(event.x, event.y, ((element['pos'][0]+element['rect'][0], element['pos'][1]+element['rect'][1] ), (element['pos'][0]+element['rect'][0]+element['rect'][2], element['pos'][1]+element['rect'][1]+element['rect'][3]) ) ):
+			if self.inside(event.x, event.y, ((element['pos'][0]+element['originPoint'][0]+element['rect'][0], element['pos'][1]+element['originPoint'][1]+element['rect'][1] ), (element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2], element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3]) ) ):
 				pass
 			else:
 				self.selectOnPress(event.x, event.y)
@@ -585,8 +651,10 @@ class Manage:
 		if not self.selectedElement in self.elements:
 			return
 		
-		self.elements[self.selectedElement]['offsetMoveX'] = event.x - self.elements[self.selectedElement]['pos'][0]
-		self.elements[self.selectedElement]['offsetMoveY'] = event.y - self.elements[self.selectedElement]['pos'][1]
+		element = self.elements[self.selectedElement]
+		
+		self.elements[self.selectedElement]['offsetMoveX'] = event.x - self.elements[self.selectedElement]['pos'][0]+element['originPoint'][0]
+		self.elements[self.selectedElement]['offsetMoveY'] = event.y - self.elements[self.selectedElement]['pos'][1]+element['originPoint'][1]
 		
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['moveF'], state = 'normal' )
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['bbox'], outline="dark red" )
@@ -595,12 +663,12 @@ class Manage:
 		for elementID in self.elements:
 			element = self.elements[elementID]
 			
-			if element.has_key('supportsScalle') and self.selectedElement != -1 and self.inside(x, y, ((element['pos'][0]+element['rect'][0]+element['rect'][2]-10, element['pos'][1]+element['rect'][1] + element['rect'][3]-10 ), (element['pos'][0]+element['rect'][0]+element['rect'][2]+10, element['pos'][1]+element['rect'][1]+element['rect'][3]+10) ) ):
+			if element.has_key('supportsScalle') and self.selectedElement != -1 and self.inside(x, y, ((element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2]-10, element['pos'][1]+element['originPoint'][1]+element['rect'][1] + element['rect'][3]-10 ), (element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2]+10, element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3]+10) ) ):
 				element['scalling'] = [x,y]
 
 				return
 				
-			elif self.inside(x, y, ((element['pos'][0]+element['rect'][0], element['pos'][1]+element['rect'][1] ), (element['pos'][0]+element['rect'][0]+element['rect'][2], element['pos'][1]+element['rect'][1]+element['rect'][3]) ) ):
+			elif self.inside(x, y, ((element['pos'][0]+element['originPoint'][0]+element['rect'][0], element['pos'][1]+element['originPoint'][1]+element['rect'][1] ), (element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2], element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3]) ) ):
 				self.selectElement(elementID)
 				return
 	
@@ -723,9 +791,9 @@ class Manage:
 			self.calculateCords(element, updateImage = True)
 			self.updateRectValue(self.selectedElement)
 			
-		else:
-			element['pos'][0] = event.x - element['offsetMoveX']
-			element['pos'][1] = event.y - element['offsetMoveY']
+		else: 
+			element['pos'][0] = event.x - element['offsetMoveX'] +element['originPoint'][0]
+			element['pos'][1] = event.y - element['offsetMoveY'] +element['originPoint'][1]
 		
 			if self.settings['isSnapping']:
 				element['pos'][0],element['pos'][1] = self.fixSnap(element['pos'][0],element['pos'][1])
@@ -858,5 +926,21 @@ class Manage:
 			raise RuntimeError
 		
 		return rgba
+		
+	def calculateOriginPoint(self, element):
+		element['originPoint'] = [0,0]
+		if element['rect'][4] == 2 or element['rect'][4] == 7:
+			element['originPoint'][0] = 640/2
+		elif element['rect'][4] == 3:
+			element['originPoint'][0] = 640
+		else:
+			element['originPoint'][0] = 0
+			
+		if element['rect'][5] == 2 or element['rect'][5] == 7:
+			element['originPoint'][1] = 480/2
+		elif element['rect'][5] == 3:
+			element['originPoint'][1] = 480
+		else:
+			element['originPoint'][1] = 0
 		
 		

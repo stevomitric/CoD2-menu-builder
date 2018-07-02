@@ -136,6 +136,30 @@ buttonSettings = {
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
 }
 
+itemSettings = {
+	'name': 		['item', 'E|S', None, None],
+	'visible':		['MENU_TRUE', 'OM|bool', None, None],
+	'rect':			['0 0 128 24 4 4', 'E', None, None],
+	'origin':		['0 0', 'E', None, None],
+	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'type':			['', 'L|DNIIN', None, None],
+	'text':			['Example Item', 'E|S', None, None],
+	'dvar':			['', 'E|S|DNIIN', None, None],
+	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
+	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
+	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
+	'textaligny':	['20', 'L', None, None],
+	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
+	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
+	'border':		['MENU_FALSE', 'OM|bool', None, None],
+	'dvartest':		['', 'E|S|DNIIN', None, None],
+	'hideDvar':		['', 'E|DNIIN', None, None],
+	'showDvar':		['', 'E|DNIIN', None,None],
+	'backcolor':	['0 0 0 0.5', 'CB|globalColours', None, None],
+	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
+	'background': 	['', 'L', None, None],
+}
+
 menuSettings = {
 	'name': 		['Menu', 'E|S', None, None],
 	'rect': 		['0 0 640 480 4 4', 'L', None, None],
@@ -224,11 +248,40 @@ globalDefinitions = {
 		'GLOBAL_HEADER_SIZE':			'.50',
 	},	
 	
-	'style': {
-		'ITEM_TEXTSTYLE_NORMAL':		'0',
-		'ITEM_TEXTSTYLE_SHADOWED':		'3',
+	'elementAligment': {
+		'HORIZONTAL_ALIGN_SUBLEFT':			'0',
+		'HORIZONTAL_ALIGN_LEFT':			'1',
+		'HORIZONTAL_ALIGN_CENTER':			'2',
+		'HORIZONTAL_ALIGN_RIGHT':			'3',
+		'HORIZONTAL_ALIGN_FULLSCREEN':		'4',
+		'HORIZONTAL_ALIGN_NOSCALE':			'5',
+		'HORIZONTAL_ALIGN_TO640':			'6',
+		'HORIZONTAL_ALIGN_CENTER_SAFEAREA':	'7',
+		'HORIZONTAL_ALIGN_MAX':				'7',
+		'HORIZONTAL_ALIGN_DEFAULT':			'0',
+		
+		'VERTICAL_ALIGN_SUBTOP':			'0',
+		'VERTICAL_ALIGN_TOP':				'1',
+		'VERTICAL_ALIGN_CENTER':			'2',
+		'VERTICAL_ALIGN_BOTTOM':			'3',
+		'VERTICAL_ALIGN_FULLSCREEN':		'4',
+		'VERTICAL_ALIGN_NOSCALE':			'5',
+		'VERTICAL_ALIGN_TO480':				'6',
+		'VERTICAL_ALIGN_CENTER_SAFEAREA':	'7',
+		'VERTICAL_ALIGN_MAX':				'7',
+		'VERTICAL_ALIGN_DEFAULT':			'0',
 	},
 	
+	'globalColours': {
+		'GLOBAL_FOCUSED_COLOR':			'.98 .827 .58 1',
+		'GLOBAL_UNFOCUSED_COLOR':		'1 1 1 1',
+		'GLOBAL_DISABLED_COLOR':		'.35 .35 .35 1',
+		'UI_FOCUS_COLOR':				'.96 .66 .04 1',
+	},
+	
+	'custom': {
+	
+	},
 	
 }
 
@@ -239,5 +292,12 @@ def getValueFromKey(key):
 			if temp2 == key:
 				return globalDefinitions[temp1][temp2]
 	return key
+	
+def getMultipleValuesFromKey(key):
+	key = key.split(' ')
+	for i in range(len(key)):
+		key[i] = getValueFromKey(key[i])
+	
+	return ' '.join(key)
 	
 	
