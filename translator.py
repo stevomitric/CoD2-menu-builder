@@ -24,6 +24,12 @@ def _calculateTabs(value):
 	
 	return '\t'*numOfTabs
 
+def getSortedDic(dic, key = 'order'):
+	arr = []
+	for i in dic:
+		arr.append(dic[i])
+	return sorted(arr, key = lambda x: x['order'])
+	
 def _writeProperties(element, indent):
 	toWrite = ''
 	
@@ -36,6 +42,10 @@ def _writeProperties(element, indent):
 		
 		if 'DNIIN' in flags and not value:
 			continue
+		if 'DNII-' in flags and (value == ' ' or value == 'MENU_FALSE' or  value =='0' or value == '-'):
+			continue
+		if 'CL' in flags:
+			value = ''
 		
 		if 'S' in flags:
 			value = '"' + value + '"'
@@ -70,12 +80,20 @@ def exportAsMenu(Menus, saveto = 'C:/users/stevo/desktop/test.menu'):
 		# Menu properties 
 		toWrite += _writeProperties(menu, '\t'*2)
 		
+		# ExecKey
+		if menu['execKey']:
+			toWrite += '\n'
+			for key in menu['execKey']:
+				toWrite += '\t\texecKey '+key+' '+menu['execKey'][key] +'\n'
+		
 		# Seperate menu and elements
 		toWrite += '\n\n'
 		
+		# Get sorted elements (by order they were created)
+		elements = getSortedDic(menu['elements'])
+		
 		# Elements
-		for elementID in menu['elements']:
-			element = menu['elements'][elementID]
+		for element in elements:
 	
 			# Element header
 			toWrite += '\t\titemDef\n'
@@ -202,6 +220,7 @@ def loadItemDef(GUI, data, inx):
 
 		
 		elif item in element['properties'] and bracketNum == 1:
+			if item == 'decoration': value = 'MENU_TRUE'
 			element['properties'][item][2].var.set(value)
 			element['properties'][item][0] = value
 			
@@ -215,10 +234,12 @@ def loadItemDef(GUI, data, inx):
 			break
 	
 	if element['properties'].has_key('rect'):
+		element['properties']['rect'][0] = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['rect'][2].var.get())
+	
 		while element['properties']['rect'][0].count(' ') < 5:
 			element['properties']['rect'][0] += ' 0'
 			element['properties']['rect'][2].var.set(element['properties']['rect'][0])
-	
+		
 	return i
 	
 def loadMenuDef(GUI, data, inx):
@@ -249,7 +270,7 @@ def loadMenuDef(GUI, data, inx):
 					menu['properties'][lastItem][0] = bracketValue
 				bracketValue = ''
 				lastItem = item
-			
+
 		elif bracketNum == 2:
 			bracketValue += item + ' ' + value + ' '
 			
@@ -259,9 +280,15 @@ def loadMenuDef(GUI, data, inx):
 			lastItem = item
 		elif item.lower() == 'itemdef':
 			skip = loadItemDef(GUI, data, i+1) +1
+		elif item.lower() == 'execkey':
+			key = data[i][1]
+			value = ' '.join(data[i][2:]).replace('"', '') 
+			if '{' not in value or '}' not in value:
+				log('Faulty or muli-lined execKey: ' + value)
+			menu['execKey'][key] = value
 		else:
 			lastItem = item
-			print item
+			log('Unknown Menu Property: ' + item)
 			
 		if not bracketNum:
 			break

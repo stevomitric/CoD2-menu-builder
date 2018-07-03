@@ -40,6 +40,8 @@ class Manage:
 			'isSnapping': False,
 			
 			'originPoint': [0 ,0],
+			
+			'orderNum': 1,
 		}
 		
 		self.selectedElement = -1
@@ -333,6 +335,8 @@ class Manage:
 			element['backImageColour'] = (0, 0, 0, 128)
 			element['backImageC'] = self.canvas.create_image(0, 0, image='', anchor = 'nw')
 	
+		element['order'] = self.getOrder()
+	
 	def updateRectSizeBasedOnFont(self, element):
 		if not self.settings['autoUpdateBBOX'] or not element.has_key('text'):
 			return
@@ -414,7 +418,7 @@ class Manage:
 				try:
 					element['image'] = element['imageOriginal'].resize((element['rect'][2], element['rect'][3]), Image.ANTIALIAS )
 					element['imageR'] = ImageTk.PhotoImage(element['image'])
-					if element['type'] == 'image': self.canvas.itemconfigure(element['backImageC'], image = element['imageR'])
+					if element['type'] == 'image': self.canvas.itemconfigure(element['id'], image = element['imageR'])
 					else: self.canvas.itemconfigure(element['background'], image = element['imageR'])
 				except: pass
 				
@@ -990,4 +994,9 @@ class Manage:
 		else:
 			element['originPoint'][1] = 0
 		
+	def getOrder(self):
+		self.settings['orderNum'] += 1
+		return self.settings['orderNum']
+
 		
+	

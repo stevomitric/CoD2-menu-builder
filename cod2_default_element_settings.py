@@ -18,6 +18,7 @@ rectSettings = {
 	'backcolor':	['0 0 0 .5', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'style': 		['WINDOW_STYLE_FILLED', 'L', None, None],
+	'decoration': 	['MENU_TRUE', 'OM|bool|DNIIN|DNII-|CL', None, None],
 }
 
 imageSettings = {
@@ -28,6 +29,7 @@ imageSettings = {
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'style': 		['WINDOW_STYLE_SHADER', 'L', None, None],
 	'background': 	['', 'S|L', None, None],
+	'decoration': 	['MENU_TRUE', 'OM|bool|DNIIN|DNII-|CL', None, None],
 }
 
 
@@ -153,7 +155,7 @@ itemSettings = {
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'E', None, None],
+	'textaligny':	['0', 'E', None, None],
 	'textalignx':	['0', 'E', None, None],
 	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
@@ -164,7 +166,7 @@ itemSettings = {
 	'backcolor':	['0 0 0 0.5', 'CB|globalColours', None, None],
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
 	'background': 	['', 'S|L|DNIIN', None, None],
-	'decoration': 	['', 'E', None, None],
+	'decoration': 	['MENU_FALSE', 'OM|bool|DNIIN|DNII-|CL', None, None],
 	'action': 		['', 'E|DNIIN|BW', None, None],
 	'onFocus': 		['', 'E|DNIIN|BW', None, None],
 }
@@ -180,16 +182,17 @@ menuSettings = {
 	'onEsc':		['', 'E|DNIIN|BW', None, None],
 	'onOpen':		['', 'E|DNIIN|BW', None, None],
 	'onClose':		['', 'E|DNIIN|BW', None, None],
+	'mouseEnter':	['', 'E|DNIIN|BW', None, None],
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose']
+elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose', 'mouseEnter']
 
 elementGroup = {
 	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'bordercolor', 'border', 'forecolor', 'textalign'],
 	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor', 'background'],
 	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar', 'dvarfloat', 'dvarFloatList'],
-	'other': ['maxPaintChars', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose']
+	'other': ['maxPaintChars', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose', 'mouseEnter']
 }
 
 

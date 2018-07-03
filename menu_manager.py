@@ -38,6 +38,8 @@ class MenuManager:
 			'backImageColour': (0, 0, 0, 128),
 			'style': 'WINDOW_STYLE_EMPTY',
 			
+			'execKey': {},
+			
 			'properties': copy.deepcopy(cod2_default_element_settings.menuSettings),
 		}
 		self.inx += 1
