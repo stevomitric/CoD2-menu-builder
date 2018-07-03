@@ -27,7 +27,7 @@ imageSettings = {
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'style': 		['WINDOW_STYLE_SHADER', 'L', None, None],
-	'background': 	['', 'L', None, None],
+	'background': 	['', 'S|L', None, None],
 }
 
 
@@ -38,12 +38,13 @@ fieldSettings = {
 	'origin':		['0 0', 'E', None, None],
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['ITEM_TYPE_UPREDITFIELD', 'L', None, None],
-	'text':			['You typed:', 'E|S', None, None],
+	'text':			['You typed:', 'E|S|DNIIN', None, None],
 	'dvar':			['testdvar', 'E|DNIIN', None, None],
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'L', None, None],
+	'textaligny':	['20', 'E', None, None],
+	'textalignx':	['0', 'E', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'backcolor':	['0 0 0 .5', 'CB|globalColours', None, None],
@@ -58,13 +59,14 @@ listSettings = {
 	'origin':		['0 0', 'E', None, None],
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['ITEM_TYPE_MULTI', 'L', None, None],
-	'text':			['You have chosen:', 'E|S', None, None],
+	'text':			['You have chosen:', 'E|S|DNIIN', None, None],
 	'dvar':			['testDvar', 'E|CBN', None, None],
 	'dvarFloatList':['{ "1.choice" 1 "sec" 2 }', 'E|DNIIN', None, None],
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'L', None, None],
+	'textaligny':	['20', 'E', None, None],
+	'textalignx':	['0', 'E', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
@@ -78,12 +80,13 @@ labelSettings = {
 	'origin':		['0 0', 'E', None, None],
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['ITEM_TYPE_TEXT', 'L', None, None],
-	'text':			['Example Text', 'E|S', None, None],
+	'text':			['Example Text', 'E|S|DNIIN', None, None],
 	'dvar':			['', 'E|DNIIN', None, None],
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'L', None, None],
+	'textaligny':	['20', 'E', None, None],
+	'textalignx':	['0', 'E', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
@@ -102,7 +105,8 @@ sliderSettings = {
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'L', None, None],
+	'textaligny':	['20', 'E', None, None],
+	'textalignx':	['0', 'E', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
 	'dvartest':		['', 'E|S|DNIIN', None, None],
@@ -120,12 +124,13 @@ buttonSettings = {
 	'origin':		['0 0', 'E', None, None],
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['ITEM_TYPE_BUTTON', 'L', None, None],
-	'text':			['Example Button', 'E|S', None, None],
+	'text':			['Example Button', 'E|S|DNIIN', None, None],
 	'dvar':			['', 'E|S|DNIIN', None, None],
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'L', None, None],
+	'textaligny':	['20', 'E', None, None],
+	'textalignx':	['0', 'E', None, None],
 	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
@@ -143,12 +148,13 @@ itemSettings = {
 	'origin':		['0 0', 'E', None, None],
 	'forecolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'type':			['', 'L|DNIIN', None, None],
-	'text':			['Example Item', 'E|S', None, None],
+	'text':			['Example Item', 'E|S|DNIIN', None, None],
 	'dvar':			['', 'E|S|DNIIN', None, None],
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'L', None, None],
+	'textaligny':	['20', 'E', None, None],
+	'textalignx':	['0', 'E', None, None],
 	'textalign':	['ITEM_ALIGN_LEFT', 'OM|align', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
@@ -157,7 +163,10 @@ itemSettings = {
 	'showDvar':		['', 'E|DNIIN', None,None],
 	'backcolor':	['0 0 0 0.5', 'CB|globalColours', None, None],
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
-	'background': 	['', 'L', None, None],
+	'background': 	['', 'S|L|DNIIN', None, None],
+	'decoration': 	['', 'E', None, None],
+	'action': 		['', 'E|DNIIN|BW', None, None],
+	'onFocus': 		['', 'E|DNIIN|BW', None, None],
 }
 
 menuSettings = {
@@ -167,16 +176,20 @@ menuSettings = {
 	'style': 		['WINDOW_STYLE_EMPTY', 'OM|windowstyle', None, None],
 	'blurWorld': 	['5.0', 'E', None, None],
 	'backcolor':	['0 0 0 .5', 'CB|globalColours', None, None],
+	'onFocus': 		['', 'E|DNIIN|BW', None, None],
+	'onEsc':		['', 'E|DNIIN|BW', None, None],
+	'onOpen':		['', 'E|DNIIN|BW', None, None],
+	'onClose':		['', 'E|DNIIN|BW', None, None],
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration' ]
+elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose']
 
 elementGroup = {
-	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'bordercolor', 'border', 'forecolor', 'textalign'],
+	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'bordercolor', 'border', 'forecolor', 'textalign'],
 	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor', 'background'],
 	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar', 'dvarfloat', 'dvarFloatList'],
-	'other': ['maxPaintChars',]
+	'other': ['maxPaintChars', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose']
 }
 
 
@@ -284,7 +297,6 @@ globalDefinitions = {
 	},
 	
 }
-
 
 def getValueFromKey(key):
 	for temp1 in globalDefinitions:

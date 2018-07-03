@@ -87,7 +87,7 @@ class Main:
 		filemenu 		= Menu(self.menubar, tearoff=0)
 		
 		importmenu 		= Menu(filemenu, tearoff=0)
-		importmenu.add_command(label="Menu file (.menu)", command = translator.importMenuFile )
+		importmenu.add_command(label="Menu file (.menu)", command = self.menuImportFile )
 		
 		exportmenu 		= Menu(filemenu, tearoff=0)
 		exportmenu.add_command(label="Menu file (.menu)", command = self.exportMenu )
@@ -187,9 +187,40 @@ class Main:
 		self.root.bind('<KeyPress>', self.elementManager.keypress)
 		self.root.bind('<KeyRelease>', self.elementManager.keyrelease)
 		
-		self.root.after(1000,  lambda: translator.importMenuFile(self) )
+		#self.root.after(1000,  lambda: translator.importMenuFile(self) )
 		
 		self.root.mainloop()
+		
+	def menuImportFile(self):
+		top = Toplevel()
+		top.geometry('300x200')
+		top.title('Import')
+		
+		top.file = StringVar()
+		top.file.set('Import File: ')
+	
+		Button(top, text = 'Change', width = 15, command = lambda: self.browseImportOpen(top) ).place(x=10,y=10)
+		top.l1 = Label(top, textvariable = top.file, width = 28)
+		top.l1.place(x=120,y=14)
+	
+		top.inc = IntVar()
+		top.inc.set(0)
+	
+		Radiobutton(top, text = 'Use default cod2 files for #include', variable = top.inc, value=0).place(x=10,y=50)
+		Radiobutton(top, text = 'Use imported menu location for #include', variable = top.inc, value=1).place(x=10,y=75)
+	
+		Button(top, text = 'Import', width = 15, command = lambda: self.importMenu(top) ).place(x=100,y=135)
+		
+		
+	def browseImportOpen(self, top):
+		name = askopenfilename(parent = top)
+		if not name: return
+		
+		top.file.set('Import File: ' + name)
+		
+	def importMenu(self, top):
+		translator.importMenuFile(self, top.file.get()[13:] )
+		
 		
 	def programSettings(self):
 		top = Toplevel()
@@ -202,20 +233,25 @@ class Main:
 		top.autobbox = BooleanVar()
 		top.autobbox.set( str( self.elementManager.settings['autoUpdateBBOX'] ) )
 		top.autobbox.trace('w', lambda a='',b='',c='' : self.changeSettings(top, 'autoUpdateBBOX') )
+		top.autoalign = BooleanVar()
+		top.autoalign.set( str( self.elementManager.settings['autoAlignText'] ) )
+		top.autoalign.trace('w', lambda a='',b='',c='' : self.changeSettings(top, 'autoAlignText') )
 		
 		Label(top, text = 'Snapping: ').grid(row = 0, column = 0, padx=10,pady=10, sticky='w')
 		Entry(top, width = 5 , textvariable = top.snap).grid(row = 0, column = 1)
 		Label(top, text = 'Snap key (hold):   CTRL' ).grid(row = 0, column = 3, padx = 40)
 		
-		Checkbutton(top, variable = top.autobbox, text = 'Auto update element rec (BBOX) ').grid(row = 1, column = 0, padx=10,pady=5,columnspan=4, sticky='w')
+		Checkbutton(top, variable = top.autobbox, text = 'Auto update element rect (BBOX) ').grid(row = 1, column = 0, padx=10,pady=5,columnspan=4, sticky='w')
+		Checkbutton(top, variable = top.autoalign, text = 'Auto align text inside rect ').grid(row = 2, column = 0, padx=10,pady=5,columnspan=4, sticky='w')
 		
 	def changeSettings(self, top, key, value = ''):
 		try:
 			if key == 'snapping':
 				value = int(top.snap.get())
-			
 			elif key == 'autoUpdateBBOX':
-				value = top.autobbox.get()
+				value = top.autobbox.get()			
+			elif key == 'autoAlignText':
+				value = top.autoalign.get()
 		except:
 			return
 		

@@ -35,6 +35,7 @@ class Manage:
 			'defaultPos': [640/2, 480/2],
 		
 			'autoUpdateBBOX': False,
+			'autoAlignText': False,
 			'snapping': 20,
 			'isSnapping': False,
 			
@@ -88,6 +89,8 @@ class Manage:
 			'properties': copy.deepcopy(cod2_default_element_settings.imageSettings),
 			'imageOriginal': self.GUI.guiRawImageData[imageID],
 			'image': self.GUI.guiRawImageData[imageID],
+			
+			'style': 'WINDOW_STYLE_SHADER',
 			
 			'pos': self.settings['defaultPos'][:],
 			'rect': [0,0,self.GUI.guiRawImageData[imageID].size[0],self.GUI.guiRawImageData[imageID].size[1], 4, 4],
@@ -349,6 +352,32 @@ class Manage:
 		
 		self.calculateCords(element, updateImage = True)
 		
+	def calculateTextAligment(self, element):
+		allowrdtypes = ['label', 'item', 'button', 'slider', 'field', 'list']
+		
+		if element['type'] not in allowrdtypes or not element['properties'].has_key('textaligny'):
+			return
+	
+		x, y = self.canvas.coords(element['id'])
+		x1, y1, x2, y2 = self.canvas.bbox(element['id'])
+		
+		y -= y2-y1
+		
+		if self.settings['autoAlignText']:
+			value = y2-y1
+			alignY = element['properties']['textaligny'][0] = str(value)
+			if element['properties']['textaligny'][2] != None:
+				element['properties']['textaligny'][2].var.set(str(value))
+		
+		alignX = int(element['properties']['textalignx'][0])
+		alignY = int(element['properties']['textaligny'][0])
+		
+		x+=alignX
+		y+=alignY
+		
+		self.canvas.coords(element['id'], (x,y) )
+		
+		
 	def calculateCords(self, element, updateImage = False):
 		self.calculateOriginPoint(element)
 	
@@ -360,15 +389,14 @@ class Manage:
 		self.canvas.coords(element['moveG'], element['pos'][0]+element['originPoint'][0]+element['rect'][2]+element['rect'][0],  element['pos'][1]+element['originPoint'][1]+ element['rect'][3]+element['rect'][1])
 		self.canvas.coords(element['invisible'], element['pos'][0]+element['originPoint'][0],  element['pos'][1]+element['originPoint'][1])
 		
+		self.calculateTextAligment(element)
+		
 		if element.has_key('border'):
 			self.canvas.coords(element['border'], element['pos'][0]+element['originPoint'][0]+element['rect'][0],  element['pos'][1]+element['originPoint'][1]+element['rect'][1],  element['pos'][0]+element['originPoint'][0]+element['rect'][0]+ element['rect'][2],  element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3] )
-		if element['properties'].has_key('textaligny') and element['properties']['textaligny'][2] != None:
-			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
-			value = y2-y1
-			element['properties']['textaligny'][2].var.set(str(value))
+
 			
 		if element.has_key('supportBackImage'):
-			self.canvas.coords(element['backImageC'], element['pos'][0]+element['originPoint'][0],  element['pos'][1]+element['originPoint'][1] )
+			self.canvas.coords(element['backImageC'], element['pos'][0]+element['originPoint'][0]+element['rect'][0],  element['pos'][1]+element['originPoint'][1]+element['rect'][1] )
 			
 		if element.has_key('background'):
 			self.canvas.coords(element['background'], element['pos'][0]+element['originPoint'][0],  element['pos'][1]+element['originPoint'][1] )
@@ -477,6 +505,7 @@ class Manage:
 				self.canvas.itemconfigure(element['id'], font = ("default ", str(int(element['size']*32)), element['bold'] ) )
 				self.propertiesManagment.setGoodPropertyOption(element['id'], 'textscale')
 				self.updateRectSizeBasedOnFont(element)
+				self.calculateCords(element)
 				
 		
 		# bold 
@@ -596,6 +625,24 @@ class Manage:
 				element['imageR'] = ImageTk.PhotoImage(element['image'])
 		
 				self.calculateCords(element, updateImage = True)
+				
+		# textaligny
+		if element['properties'].has_key('textaligny') and property == 'textaligny':
+			try:
+				newValue = int(element['properties']['textaligny'][2].var.get())
+				self.propertiesManagment.setGoodPropertyOption(element['id'], 'textaligny')
+				self.calculateCords(element)
+			except:
+				self.propertiesManagment.setBadPropertyOption(element['id'], 'textaligny')
+				
+		# textalignx
+		if element['properties'].has_key('textalignx') and property == 'textalignx':
+			try:
+				newValue = int(element['properties']['textalignx'][2].var.get())
+				self.propertiesManagment.setGoodPropertyOption(element['id'], 'textalignx')
+				self.calculateCords(element)
+			except:
+				self.propertiesManagment.setBadPropertyOption(element['id'], 'textalignx')
 		
 	def updateListText(self, element, property = 'dvarFloatList'):
 		try:

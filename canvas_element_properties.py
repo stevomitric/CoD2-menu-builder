@@ -60,13 +60,19 @@ class Properties:
 	
 	def setBadPropertyOption(self, elementID, property, element = None):
 		if element == None: element = self.manage.elements[elementID]
-	
+		
+		if not element['properties'][property][3].winfo_exists():
+			return
+		
 		element['properties'][property][3].configure(background = 'red')
 		if property not in element['badArgument']:
 			element['badArgument'].append(property)
 	
 	def setGoodPropertyOption(self, elementID, property, element = None):
 		if element == None: element = self.manage.elements[elementID]
+		
+		if not element['properties'][property][3].winfo_exists():
+			return
 		
 		defaultColour = self.GUI.root.cget('bg')
 		element['properties'][property][3].configure(background = defaultColour)
