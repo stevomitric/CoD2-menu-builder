@@ -107,7 +107,7 @@ sliderSettings = {
 	'textfont':		['UI_FONT_NORMAL', 'OM|font', None, None],
 	'textscale':	['GLOBAL_TEXT_SIZE', 'CB|size', None, None],
 	'textstyle':	['ITEM_TEXTSTYLE_NORMAL', 'OM|style', None, None],
-	'textaligny':	['20', 'E', None, None],
+	'textaligny':	['15', 'E', None, None],
 	'textalignx':	['0', 'E', None, None],
 	'bordercolor':	['0 0 0 1', 'CB|globalColours', None, None],
 	'border':		['MENU_FALSE', 'OM|bool', None, None],
@@ -169,6 +169,9 @@ itemSettings = {
 	'decoration': 	['MENU_FALSE', 'OM|bool|DNIIN|DNII-|CL', None, None],
 	'action': 		['', 'E|DNIIN|BW', None, None],
 	'onFocus': 		['', 'E|DNIIN|BW', None, None],
+	'maxPaintChars':['', 'E|DNIIN', None, None],
+	'dvarfloat':	['', 'E|DNIIN', None,None],
+	'dvarFloatList':['', 'E|DNIIN', None, None],
 }
 
 menuSettings = {

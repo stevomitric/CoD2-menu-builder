@@ -68,6 +68,9 @@ class MenuManager:
 
 		return menu
 		
+	def updateBackground(self, menu, image):
+		menu['canvas'].itemconfigure(menu['canvasBG'], image = self.GUI.guiImages[image] )
+		
 	def updateBackImage(self, element):
 		if element['style']	== 'WINDOW_STYLE_FILLED':
 
@@ -81,8 +84,7 @@ class MenuManager:
 	def loadMenuProperties(self):
 		self.GUI.elementManager.disselectElement()
 	
-		name = self.GUI.nb.tab(self.GUI.nb.select(), "text")
-		menu = self.identifyMenuBasedOnName(name)
+		menu = self.identifyMenuBasedOnID(self.GUI.nb.select())
 	
 		self.GUI.elementManager.propertiesManagment.updatePorperties(nonElementProperty = menu)
 	
@@ -96,8 +98,7 @@ class MenuManager:
 		
 		self.GUI.elementManager.removeAll()
 
-		name = self.GUI.nb.tab(id, "text")
-		menu = self.identifyMenuBasedOnName(name)
+		menu = self.identifyMenuBasedOnID(id)
 	
 		self.GUI.nb.forget(id)
 	
@@ -106,6 +107,12 @@ class MenuManager:
 	def identifyMenuBasedOnName(self, name):
 		for menu in self.Menus:
 			if menu['name'] == name:
+				return menu
+		return None
+		
+	def identifyMenuBasedOnID(self, id):
+		for menu in self.Menus:
+			if menu['id'] == id:
 				return menu
 		return None
 		

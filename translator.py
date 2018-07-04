@@ -12,8 +12,10 @@ This code has no licence, feel free to do whatever you want with it.
 
 import cod2_default_element_settings
 
-def log(msg, state = 'INFO'):
+def log(msg, state = 'INFO', out = ''):
 	print state.upper() + ': ' + msg
+	if out:
+		out.tx.insert('end', state.upper() + ': ' + msg + '\n')
 
 def _calculateTabs(value):
 	TABMAX = 7
@@ -169,7 +171,6 @@ def processInclude(data):
 	
 		if item == '#include':
 			path = data[i][1].replace('"','')
-			print path
 			data.pop(i)
 			
 			path = 'Data/cod2_menus/' + path
@@ -199,7 +200,8 @@ def loadItemDef(GUI, data, inx):
 	
 	for i in range(inx, len(data)):
 		item = data[i][0]
-		value = ' '.join(data[i][1:]).replace('"', '')
+		value = ' '.join(data[i][1:])
+		if '{' not in value: value = value.replace('"','')
 		if value in cod2_default_element_settings.globalDefinitions['custom']:
 			value = cod2_default_element_settings.globalDefinitions['custom'][value]
 		
@@ -239,6 +241,10 @@ def loadItemDef(GUI, data, inx):
 		while element['properties']['rect'][0].count(' ') < 5:
 			element['properties']['rect'][0] += ' 0'
 			element['properties']['rect'][2].var.set(element['properties']['rect'][0])
+		
+	if element['properties'].has_key('type') and element['properties']['type'][0] == 'ITEM_TYPE_SLIDER':
+		GUI.elementManager.initSlider(element)
+		GUI.elementManager.calculateCords(element, updateImage = True)
 		
 	return i
 	
@@ -296,41 +302,40 @@ def loadMenuDef(GUI, data, inx):
 	GUI.MenuManager.updateTabName(menu['id'], menu['properties']['name'][0])
 	menu['name'] =  menu['properties']['name'][0]
 	
-def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu' ):
-	file = open(filePath, 'rb')
-	data = file.read().replace('\r', '')
-	file.close()
+def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu', out = ''):
+	log('Import started ', out = out)
+	try:
+		file = open(filePath, 'rb')
+		data = file.read().replace('\r', '')
+		file.close()
+	except: return -1
 	
-	while '/*' in data: data = data.split('/*', 1)[0] + data.split('/*', 1)[1].split('*/', 1)[1]
+	try:
+		while '/*' in data: data = data.split('/*', 1)[0] + data.split('/*', 1)[1].split('*/', 1)[1]
+		data = processData(data)
+		while '#include' in [item for sublist in data for item in sublist]:
+			data = processInclude(data)
+	except:
+		return -2
 	
-	data = processData(data)
-	while '#include' in [item for sublist in data for item in sublist]:
-		data = processInclude(data)
-		
-	for i in range(len(data)):
-		for i2 in range(len(data[i])):
-			item = data[i][i2].lower()
-			
-			if item == '#define':
-				variable = data[i][1]
-				value = ' '.join(data[i][2:])
+	try:
+		for i in range(len(data)):
+			for i2 in range(len(data[i])):
+				item = data[i][i2].lower()
 				
-				if cod2_default_element_settings.getValueFromKey(variable) == variable:
-					cod2_default_element_settings.globalDefinitions['custom'][variable] = value
-			
-			if item == 'menudef':
-				loadMenuDef(GUI, data, i+1)
+				if item == '#define':
+					variable = data[i][1]
+					value = ' '.join(data[i][2:])
+					
+					if cod2_default_element_settings.getValueFromKey(variable) == variable:
+						cod2_default_element_settings.globalDefinitions['custom'][variable] = value
+				
+				if item == 'menudef':
+					loadMenuDef(GUI, data, i+1)
+	except:
+		return -3
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	return 0
 	
 	
 	

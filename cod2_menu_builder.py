@@ -52,6 +52,8 @@ class Main:
 			'move': 'data/icons/move.png',
 			'moveF': 'data/icons/moveF.png',
 			'background': 'data/transparent.png',
+			'background2': 'data/cod2dx7.png',
+			'background3': 'data/cod2dx9.png',
 			'nopreview': 'data/nopreview.png',
 			'slider': 'data/slider.png',
 		}
@@ -80,6 +82,7 @@ class Main:
 		self.root = Tk()
 		self.root.geometry('935x590')
 		self.root.title('Call of Duty 2 Menu Builder - stEvo')
+		self.root.resizable(False, False)
 		
 		self.GUILoadImages()
 		
@@ -104,7 +107,7 @@ class Main:
 		
 		
 		
-		self.menubar.add_cascade(label="help")
+		#self.menubar.add_cascade(label="help")
 		self.root.config(menu=self.menubar)
 		
 		self.f2 = LabelFrame(self.root, text = 'Menus')
@@ -187,13 +190,16 @@ class Main:
 		self.root.bind('<KeyPress>', self.elementManager.keypress)
 		self.root.bind('<KeyRelease>', self.elementManager.keyrelease)
 		
+		self.root.bind('<Control-c>', lambda _: self.elementManager.copySelected() )
+		self.root.bind('<Control-v>', lambda _: self.elementManager.pasteSelected() )
+		
 		#self.root.after(1000,  lambda: translator.importMenuFile(self) )
 		
 		self.root.mainloop()
 		
 	def menuImportFile(self):
 		top = Toplevel()
-		top.geometry('300x200')
+		top.geometry('300x150')
 		top.title('Import')
 		
 		top.file = StringVar()
@@ -207,9 +213,9 @@ class Main:
 		top.inc.set(0)
 	
 		Radiobutton(top, text = 'Use default cod2 files for #include', variable = top.inc, value=0).place(x=10,y=50)
-		Radiobutton(top, text = 'Use imported menu location for #include', variable = top.inc, value=1).place(x=10,y=75)
+		Radiobutton(top, text = 'Use imported menu location for #include', variable = top.inc, value=1, state = 'disabled').place(x=10,y=75)
 	
-		Button(top, text = 'Import', width = 15, command = lambda: self.importMenu(top) ).place(x=100,y=135)
+		Button(top, text = 'Import', width = 15, command = lambda: self.importMenu(top) ).place(x=100,y=115)
 		
 		
 	def browseImportOpen(self, top):
@@ -219,12 +225,35 @@ class Main:
 		top.file.set('Import File: ' + name)
 		
 	def importMenu(self, top):
-		translator.importMenuFile(self, top.file.get()[13:] )
+		#top2 = Toplevel()
+		#top2.title('Import console')
+	
+		#top2.tx = Text(top2, height = 10, width = 50)
+		#top2.tx.grid(row= 0, column = 0)
 		
+		#top.bind("<Destroy>", top2.destroy)
+	
+		self.root.after(100, lambda: self.beginImport(top) )
+	
+	def beginImport(self, top, top2 = ''):
+		res = translator.importMenuFile(self, top.file.get()[13:], out = top2)
+		if res == -1:
+			showinfo('Error 004', 'Invalid file location. (Could not open: '+top.file.get()[13:]+', errno 22) ', parent = top)
+			return
+		elif res == -2:
+			showinfo('Error 005', 'Error occured during data processing. Check console for details.', parent = top)
+			return
+		elif res == -3:
+			showinfo('Error 006', 'Error occured during menu creation. Check console for details.', parent = top)
+			return
+			
+		top.destroy()
+		if top2:
+			top2.destroy()
 		
 	def programSettings(self):
 		top = Toplevel()
-		top.geometry('300x200')
+		top.geometry('300x110')
 		top.title('Settings')
 		
 		top.snap = StringVar()
@@ -273,7 +302,7 @@ class Main:
 		top.um = BooleanVar()
 		top.um.set(False)
 	
-		Checkbutton(top, text = 'Use Macros when saving', variable = top.um).place(x=10,y=50)
+		Checkbutton(top, text = 'Use Macros when saving', variable = top.um, state = 'disabled').place(x=10,y=50)
 	
 		Button(top, text = 'Export', width = 15, command = lambda: self.exportMenuAction(top) ).place(x=100,y=85)
 	
@@ -355,8 +384,7 @@ class Main:
 			top.canvas.itemconfigure(top.image, image = self.guiImages['nopreview'])
 		
 	def newMenuPressed(self, event):
-		name = self.nb.tab(self.nb.select(), "text")
-		self.MenuManager.selectMenu( self.MenuManager.identifyMenuBasedOnName(name) )
+		self.MenuManager.selectMenu( self.MenuManager.identifyMenuBasedOnID(self.nb.select()) )
 		
 	def deleteMenuPressed(self, *event):
 		res = askyesno('Confirm', 'Are you sure you want to delete this menu ?')
@@ -375,19 +403,28 @@ class Main:
 		self.menuPopup.post(event.x_root, event.y_root)
 		
 	def loadRightMenuOptions(self):
+	
+		self.rightMenu 		= Menu(self.root, tearoff=0)
+		newBackground 		= Menu(self.rightMenu, tearoff=0)
+		newBackground.add_command(label="Transparent", command = lambda: self.changeBG('background') )
+		newBackground.add_command(label="Toujane/CoD2 DX7", command = lambda: self.changeBG('background2') )
+		newBackground.add_command(label="Toujane/CoD2 DX9 (blured)", command = lambda: self.changeBG('background3') )
+	
 		self.rightMenuS 		= Menu(self.root, tearoff=0)
 		self.rightMenuS.add_command(label="Copy selected element", command = self.elementManager.copySelected )
 		self.rightMenuS.add_command(label="Paste element", command = self.elementManager.pasteSelected)
 		self.rightMenuS.add_command(label="Delete selected element", command =self.elementManager.deleteElement )
-		self.rightMenuS.add_command(label="Delete all elements", command = self.elementManager.deleteAllElements)
 		self.rightMenuS.add_separator()
-		self.rightMenuS.add_command(label="Reset properties to default")
-
+		self.rightMenuS.add_command(label="Delete all elements", command = self.elementManager.deleteAllElements)
 		
-		self.rightMenu 		= Menu(self.root, tearoff=0)
-		self.rightMenu.add_command(label="Change background")
+		
+		self.rightMenu.add_cascade(label="Change background", menu = newBackground)
 		self.rightMenu.add_command(label="Paste element", command = self.elementManager.pasteSelected)
 		self.rightMenu.add_command(label="Delete all elements", command = self.elementManager.deleteAllElements)
+		
+	def changeBG(self, bg):
+		menu = self.MenuManager.identifyMenuBasedOnID(self.nb.select())
+		self.MenuManager.updateBackground(menu, bg)
 		
 	def rightMenuPopupEventSelected(self, event):
 		self.rightMenuS.post(event.x_root, event.y_root)

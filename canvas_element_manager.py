@@ -14,7 +14,7 @@ import cod2_default_element_settings
 import canvas_element_properties
 
 
-import copy, tkMessageBox
+import copy, tkMessageBox, translator
 
 from Tkinter 	import *
 from ttk		import *
@@ -187,7 +187,7 @@ class Manage:
 			'supportBackImage': 1,
 			
 			'properties': copy.deepcopy(cod2_default_element_settings.sliderSettings),
-			'image': self.GUI.guiRawImageData['slider'],
+			
 		
 			'style': 'WINDOW_STYLE_EMPTY',
 			'text': 'Example Slider',
@@ -201,11 +201,11 @@ class Manage:
 			'offsetMoveX': 0,
 			'offsetMoveY': 0,
 		}
-		element['imageR'] = ImageTk.PhotoImage(element['image'])
+		
 		
 		elementID = self.canvas.create_text(0,0, fill=element['colour'], font="default "+str(element['size']), text= element['text'], anchor = 'nw')
 		element['id'] = elementID
-		element['sliderImage'] = self.canvas.create_image(0, 0, image= element['imageR'], anchor = 'nw')
+		
 		
 		self.initElementIcons(element)
 		self.elements[elementID] = element
@@ -317,7 +317,7 @@ class Manage:
 		return elementID
 		
 	def initElementIcons(self, element):
-		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="Rosy Brown1", width=2, state = 'hidden')
+		element['bbox'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="#f4a273", width=2, state = 'hidden')
 		element['border'] = self.canvas.create_rectangle(0, 0, 0, 0, outline="black", width=2, state = 'hidden')
 		element['move'] = self.canvas.create_image(0, 0, image=self.images['move'], state = 'hidden')
 		element['moveF'] = self.canvas.create_image(0, 0, image=self.images['moveF'], state = 'hidden')
@@ -335,8 +335,16 @@ class Manage:
 			element['backImageColour'] = (0, 0, 0, 128)
 			element['backImageC'] = self.canvas.create_image(0, 0, image='', anchor = 'nw')
 	
+		if element['type'] == 'slider':
+			self.initSlider(element)
+	
 		element['order'] = self.getOrder()
 	
+	def initSlider(self, element):
+		element['sliderImageorg'] = self.GUI.guiRawImageData['slider']
+		element['sliderImageR'] = ImageTk.PhotoImage(element['sliderImageorg'])
+		element['sliderImage'] = self.canvas.create_image(0, 0, image= element['sliderImageR'], anchor = 'nw')
+
 	def updateRectSizeBasedOnFont(self, element):
 		if not self.settings['autoUpdateBBOX'] or not element.has_key('text'):
 			return
@@ -349,7 +357,7 @@ class Manage:
 		if element['type'] == 'field':
 			element['rect'][2] += 100
 		
-		if element['type'] == 'slider':
+		if element.has_key('sliderImageorg'):
 			element['rect'][2] += 150
 		
 		element['properties']['rect'][2].var.set(' '.join(str(x) for x in element['rect']))
@@ -426,12 +434,12 @@ class Manage:
 				if element['type'] == 'image': self.canvas.itemconfigure(element['backImageC'], image = '')
 				else: self.canvas.itemconfigure(element['background'], image = '' )
 					
-		if element['type'] == 'slider':
+		if element.has_key('sliderImageorg'):
 			x1, y1, x2, y2 = self.canvas.bbox(element['id'])
 			value = x2-x1
-			element['imageR'] = ImageTk.PhotoImage(element['image'])
-			self.canvas.coords(element['sliderImage'], element['pos'][0]+element['originPoint'][0]+value,  element['pos'][1]+element['originPoint'][1])
-			self.canvas.itemconfigure(element['sliderImage'], image = element['imageR'])
+			element['sliderImageR'] = ImageTk.PhotoImage(element['sliderImageorg'])
+			self.canvas.coords(element['sliderImage'], element['pos'][0]+element['rect'][0]+element['originPoint'][0]+value,  element['pos'][1]+element['rect'][1]+element['originPoint'][1])
+			self.canvas.itemconfigure(element['sliderImage'], image = element['sliderImageR'])
 		
 		if element.has_key('supportBackImage'):
 			if updateImage:
@@ -461,12 +469,12 @@ class Manage:
 				element['text'] = newValue
 				self.canvas.itemconfigure(element['id'], text = element['text'])
 				
-				if element['type'] == 'list':
+				if element['type'] == 'list' or (element['properties'].has_key('dvarFloatList') and element['properties']['type'] == 'ITEM_TYPE_MULTI'):
 					self.updateListText(element)
 				
 				self.propertiesManagment.updateElementList()
 				self.updateRectSizeBasedOnFont(element)
-				
+				self.calculateCords(element, updateImage = True)
 		
 		# Position (origin)
 		if element['properties'].has_key('origin') and property == 'origin':
@@ -535,8 +543,8 @@ class Manage:
 					self.propertiesManagment.setBadPropertyOption(element['id'], 'forecolor')
 					return
 					
-				if element['type'] == 'slider':
-					self.reColorImage(rgba, element['image'])
+				if element.has_key('sliderImageorg'):
+					self.reColorImage(rgba, element['sliderImageorg'])
 					self.calculateCords(element, updateImage = True)
 					
 				element['colour'] = newValue
@@ -595,7 +603,7 @@ class Manage:
 				self.canvas.itemconfigure(element['invisible'], state = 'normal')
 		
 		# Style
-		if element['properties'].has_key('style') and property == 'style':
+		if element['properties'].has_key('style') and property == 'style' and element.has_key('style'):
 			newValue = element['properties']['style'][2].var.get()
 		
 			if element['style'] != newValue:
@@ -711,8 +719,9 @@ class Manage:
 		self.canvas.itemconfigure(self.elements[self.selectedElement]['bbox'], outline="dark red" )
 	
 	def selectOnPress(self, x, y):
-		for elementID in self.elements:
-			element = self.elements[elementID]
+		elements = translator.getSortedDic(self.elements)[::-1]
+		for element in elements:
+			elementID = element['id']
 			
 			if element.has_key('supportsScalle') and self.selectedElement != -1 and self.inside(x, y, ((element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2]-10, element['pos'][1]+element['originPoint'][1]+element['rect'][1] + element['rect'][3]-10 ), (element['pos'][0]+element['originPoint'][0]+element['rect'][0]+element['rect'][2]+10, element['pos'][1]+element['originPoint'][1]+element['rect'][1]+element['rect'][3]+10) ) ):
 				element['scalling'] = [x,y]
@@ -795,7 +804,7 @@ class Manage:
 		element = self.elements[self.selectedElement]
 			
 		self.canvas.itemconfigure(element['moveF'], state = 'hidden' )
-		self.canvas.itemconfigure(element['bbox'], outline="Rosy Brown1" )
+		self.canvas.itemconfigure(element['bbox'], outline="#f4a273" )
 		
 		if element.has_key('scalling'):
 			element.pop('scalling')
@@ -859,7 +868,7 @@ class Manage:
 		self.copiedElement = self.selectedElement
 		
 	def copyDataToFrom(self, ID1, ID2):
-		doNotCopy = ['bbox', 'border', 'move', 'moveF', 'moveG', 'invisible', 'backImageC', 'id', 'imageR', 'sliderImage']
+		doNotCopy = ['bbox', 'border', 'move', 'moveF', 'moveG', 'invisible', 'backImageC', 'id', 'imageR', 'sliderImage', 'sliderImageR', 'sliderImageorg']
 		
 		element1 = self.elements[ID1]
 		element2 = self.elements[ID2]
