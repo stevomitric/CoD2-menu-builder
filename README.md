@@ -28,4 +28,4 @@ There are 5 frames:
  - Elements: Gives you a list of menus elements. You can select one by pressing on it (useful if your element is completely covered by another)
  
  
-You can only import menus that are made by this tool (some others work but its not recommende).
+You can only import menus that are made by this tool (some others work but its not recommended).
