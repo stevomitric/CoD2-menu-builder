@@ -199,7 +199,7 @@ class Main:
 		
 	def menuImportFile(self):
 		top = Toplevel()
-		top.geometry('300x150')
+		top.geometry('300x175')
 		top.title('Import')
 		
 		top.file = StringVar()
@@ -209,13 +209,17 @@ class Main:
 		top.l1 = Label(top, textvariable = top.file, width = 28)
 		top.l1.place(x=120,y=14)
 	
+		top.ul = BooleanVar()
+		top.ul.set(False)
+	
 		top.inc = IntVar()
 		top.inc.set(0)
 	
 		Radiobutton(top, text = 'Use default cod2 files for #include', variable = top.inc, value=0).place(x=10,y=50)
 		Radiobutton(top, text = 'Use imported menu location for #include', variable = top.inc, value=1, state = 'disabled').place(x=10,y=75)
+		Checkbutton(top, text = 'Display console (log) when importing files', variable = top.ul).place(x=10,y=100)
 	
-		Button(top, text = 'Import', width = 15, command = lambda: self.importMenu(top) ).place(x=100,y=115)
+		Button(top, text = 'Import', width = 15, command = lambda: self.importMenu(top) ).place(x=100,y=140)
 		
 		
 	def browseImportOpen(self, top):
@@ -225,15 +229,18 @@ class Main:
 		top.file.set('Import File: ' + name)
 		
 	def importMenu(self, top):
-		#top2 = Toplevel()
-		#top2.title('Import console')
 	
-		#top2.tx = Text(top2, height = 10, width = 50)
-		#top2.tx.grid(row= 0, column = 0)
+		if top.ul.get():
+			top2 = Toplevel()
+			top2.title('Import console')
+			top2.tx = Text(top2, height = 20, width = 100)
+			top2.tx.grid(row= 0, column = 0)
+		else:
+			top2 = ''
 		
 		#top.bind("<Destroy>", top2.destroy)
 	
-		self.root.after(100, lambda: self.beginImport(top) )
+		self.root.after(100, lambda: self.beginImport(top, top2) )
 	
 	def beginImport(self, top, top2 = ''):
 		res = translator.importMenuFile(self, top.file.get()[13:], out = top2)
@@ -249,7 +256,7 @@ class Main:
 			
 		top.destroy()
 		if top2:
-			top2.destroy()
+			top2.lift()
 		
 	def programSettings(self):
 		top = Toplevel()

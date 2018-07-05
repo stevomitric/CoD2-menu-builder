@@ -164,7 +164,7 @@ def processData(data):
 		
 	return newData
 	
-def processInclude(data):
+def processInclude(data, out=''):
 	
 	for i in range(len(data)):
 		item = data[i][0]
@@ -172,6 +172,7 @@ def processInclude(data):
 		if item == '#include':
 			path = data[i][1].replace('"','')
 			data.pop(i)
+			log('Loading #include file: ' + path, out = out)
 			
 			path = 'Data/cod2_menus/' + path
 			file = open(path, 'rb')
@@ -188,7 +189,7 @@ def processInclude(data):
 			
 	return data
 	
-def loadItemDef(GUI, data, inx):
+def loadItemDef(GUI, data, inx, out=''):
 	bracketNum = 0
 	bracketValue = ''
 	lastItem = ''
@@ -230,7 +231,7 @@ def loadItemDef(GUI, data, inx):
 			
 		else:
 			lastItem = item
-			log('Unknown Property: ' + item)
+			log('Unknown item Property: ' + item, 'warning', out=out)
 			
 		if not bracketNum:
 			break
@@ -248,7 +249,7 @@ def loadItemDef(GUI, data, inx):
 		
 	return i
 	
-def loadMenuDef(GUI, data, inx):
+def loadMenuDef(GUI, data, inx, out = ''):
 	bracketNum, skip = 0, 0
 	bracketValue = ''
 	lastItem = ''
@@ -262,7 +263,7 @@ def loadMenuDef(GUI, data, inx):
 		if i < skip:
 			continue
 			
-		item = data[i][0]
+		item = cod2_default_element_settings.fixItem(data[i][0])
 		value = ' '.join(data[i][1:]).replace('"', '')
 
 		
@@ -285,7 +286,7 @@ def loadMenuDef(GUI, data, inx):
 			menu['properties'][item][0] = value
 			lastItem = item
 		elif item.lower() == 'itemdef':
-			skip = loadItemDef(GUI, data, i+1) +1
+			skip = loadItemDef(GUI, data, i+1, out=out) +1
 		elif item.lower() == 'execkey':
 			key = data[i][1]
 			value = ' '.join(data[i][2:]).replace('"', '') 
@@ -294,7 +295,7 @@ def loadMenuDef(GUI, data, inx):
 			menu['execKey'][key] = value
 		else:
 			lastItem = item
-			log('Unknown Menu Property: ' + item)
+			log('Unknown Menu Property: ' + item, 'warning', out=out)
 			
 		if not bracketNum:
 			break
@@ -308,14 +309,19 @@ def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu', out = '
 		file = open(filePath, 'rb')
 		data = file.read().replace('\r', '')
 		file.close()
-	except: return -1
+		log('File has been read', 'success', out = out)
+	except Exception, err:
+		log('Following error occured while reading file: ' + str(err), 'critical', out = out)
+		return -1
 	
 	try:
 		while '/*' in data: data = data.split('/*', 1)[0] + data.split('/*', 1)[1].split('*/', 1)[1]
 		data = processData(data)
 		while '#include' in [item for sublist in data for item in sublist]:
-			data = processInclude(data)
-	except:
+			data = processInclude(data, out=out)
+		log('All "#include" have been imported', 'success', out = out)
+	except Exception, err:
+		log('Following error occured while processing include: ' + str(err), 'critical', out = out)
 		return -2
 	
 	try:
@@ -331,8 +337,10 @@ def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu', out = '
 						cod2_default_element_settings.globalDefinitions['custom'][variable] = value
 				
 				if item == 'menudef':
-					loadMenuDef(GUI, data, i+1)
-	except:
+					log('New menu has been found', out = out)
+					loadMenuDef(GUI, data, i+1, out=out)
+	except Exception, err:
+		log('Following error occured while processing file: ' + str(err), 'critical', out = out)
 		return -3
 	
 	return 0

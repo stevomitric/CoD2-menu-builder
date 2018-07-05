@@ -424,7 +424,7 @@ class Manage:
 		if element['type'] == 'image' or element['properties'].has_key('background'):
 			if updateImage:
 				try:
-					element['image'] = element['imageOriginal'].resize((element['rect'][2], element['rect'][3]), Image.ANTIALIAS )
+					element['image'] = element['imageOriginal'].resize((element['rect'][2]+element['rect'][0], element['rect'][3]+element['rect'][1]), Image.ANTIALIAS )
 					element['imageR'] = ImageTk.PhotoImage(element['image'])
 					if element['type'] == 'image': self.canvas.itemconfigure(element['id'], image = element['imageR'])
 					else: self.canvas.itemconfigure(element['background'], image = element['imageR'])

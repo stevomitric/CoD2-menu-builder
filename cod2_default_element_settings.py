@@ -170,8 +170,11 @@ itemSettings = {
 	'action': 		['', 'E|DNIIN|BW', None, None],
 	'onFocus': 		['', 'E|DNIIN|BW', None, None],
 	'maxPaintChars':['', 'E|DNIIN', None, None],
+	'maxtChars':	['', 'E|DNIIN', None, None],
 	'dvarfloat':	['', 'E|DNIIN', None,None],
 	'dvarFloatList':['', 'E|DNIIN', None, None],
+	'mouseEnter':	['', 'E|DNIIN|BW', None, None],
+	'mouseExit':	['', 'E|DNIIN|BW', None, None],
 }
 
 menuSettings = {
@@ -189,13 +192,13 @@ menuSettings = {
 	
 }
 
-elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'backcolor', 'bordercolor', 'border', 'maxPaintChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose', 'mouseEnter']
+elementOrder = ['name', 'visible', 'rect', 'background', 'focuscolor', 'style', 'blurWorld', 'origin', 'forecolor', 'type', 'text', 'dvar', 'textalign', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'backcolor', 'bordercolor', 'border', 'maxPaintChars','maxtChars', 'dvartest', 'dvarfloat', 'dvarFloatList', 'hideDvar', 'showDvar', 'decoration', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose', 'mouseEnter', 'mouseExit']
 
 elementGroup = {
 	'text': ['text', 'textfont', 'textscale', 'textstyle', 'textaligny', 'textalignx', 'bordercolor', 'border', 'forecolor', 'textalign'],
 	'basic': ['name', 'visible', 'origin', 'rect', 'style', 'blurWorld', 'focuscolor', 'type', 'decoration', 'backcolor', 'background'],
 	'function': ['dvar', 'dvartest', 'hideDvar', 'showDvar', 'dvarfloat', 'dvarFloatList'],
-	'other': ['maxPaintChars', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose', 'mouseEnter']
+	'other': ['maxPaintChars', 'action', 'onFocus', 'onEsc', 'onOpen', 'onClose', 'mouseEnter', 'mouseExit', 'maxtChars']
 }
 
 
@@ -303,6 +306,12 @@ globalDefinitions = {
 	},
 	
 }
+
+def fixItem(item):
+	for element in elementOrder:
+		if item.lower() == element.lower():
+			return element
+	return item
 
 def getValueFromKey(key):
 	for temp1 in globalDefinitions:
