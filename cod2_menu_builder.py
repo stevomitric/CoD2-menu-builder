@@ -193,7 +193,7 @@ class Main:
 		self.root.bind('<Control-c>', lambda _: self.elementManager.copySelected() )
 		self.root.bind('<Control-v>', lambda _: self.elementManager.pasteSelected() )
 		
-		#self.root.after(1000,  lambda: translator.importMenuFile(self) )
+		self.root.after(1000,  lambda: translator.importMenuFile(self) )
 		
 		self.root.mainloop()
 		

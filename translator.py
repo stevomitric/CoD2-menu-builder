@@ -11,6 +11,7 @@ This code has no licence, feel free to do whatever you want with it.
 '''
 
 import cod2_default_element_settings
+import translator_macro_process
 
 def log(msg, state = 'INFO', out = ''):
 	print state.upper() + ': ' + msg
@@ -291,7 +292,7 @@ def loadMenuDef(GUI, data, inx, out = ''):
 			key = data[i][1]
 			value = ' '.join(data[i][2:]).replace('"', '') 
 			if '{' not in value or '}' not in value:
-				log('Faulty or muli-lined execKey: ' + value)
+				log('Faulty or muli-lined execKey: ' + value, out=out)
 			menu['execKey'][key] = value
 		else:
 			lastItem = item
@@ -303,7 +304,7 @@ def loadMenuDef(GUI, data, inx, out = ''):
 	GUI.MenuManager.updateTabName(menu['id'], menu['properties']['name'][0])
 	menu['name'] =  menu['properties']['name'][0]
 	
-def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu', out = ''):
+def importMenuFile(GUI, filePath = 'C:/users/stevic0/desktop/test.menu', out = ''):
 	log('Import started ', out = out)
 	try:
 		file = open(filePath, 'rb')
@@ -313,6 +314,7 @@ def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu', out = '
 	except Exception, err:
 		log('Following error occured while reading file: ' + str(err), 'critical', out = out)
 		return -1
+
 	
 	try:
 		while '/*' in data: data = data.split('/*', 1)[0] + data.split('/*', 1)[1].split('*/', 1)[1]
@@ -325,16 +327,22 @@ def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/ingame.menu', out = '
 		return -2
 	
 	try:
+		data = translator_macro_process.processData(data)
+	except Exception, err:
+		log('Following error occured while macro-processing file: ' + str(err), 'critical', out = out)
+		return -1
+	
+	try:
 		for i in range(len(data)):
 			for i2 in range(len(data[i])):
 				item = data[i][i2].lower()
 				
-				if item == '#define':
-					variable = data[i][1]
-					value = ' '.join(data[i][2:])
-					
-					if cod2_default_element_settings.getValueFromKey(variable) == variable:
-						cod2_default_element_settings.globalDefinitions['custom'][variable] = value
+				#if item == '#define':
+				#	variable = data[i][1]
+				#	value = ' '.join(data[i][2:])
+				#	
+				#	if cod2_default_element_settings.getValueFromKey(variable) == variable:
+				#		cod2_default_element_settings.globalDefinitions['custom'][variable] = value
 				
 				if item == 'menudef':
 					log('New menu has been found', out = out)
