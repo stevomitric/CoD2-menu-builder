@@ -48,6 +48,7 @@ class Main:
 		
 		
 			'CODgradient': 'data/gradient.png',
+			'CODblack': 'data/black.png',
 		
 			'move': 'data/icons/move.png',
 			'moveF': 'data/icons/moveF.png',

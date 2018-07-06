@@ -247,8 +247,8 @@ globalDefinitions = {
 	},
 	
 	'font': {
-		'UI_FONT_NORMAL':				'',		#'1',
-		'UI_FONT_BOLD':					'bold',	#'4',
+		'UI_FONT_NORMAL':				'1',
+		'UI_FONT_BOLD':					'4',
 	
 	},
 

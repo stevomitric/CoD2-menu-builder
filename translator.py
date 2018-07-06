@@ -53,7 +53,7 @@ def _writeProperties(element, indent):
 		if 'S' in flags:
 			value = '"' + value + '"'
 				
-		if 'BW' in flags:
+		if 'BW' in flags and value[0:1] != '{':
 			value = '{ ' + value + ' }'
 				
 		toWrite += indent+property+ _calculateTabs(property)  +value+'\n'
@@ -304,7 +304,7 @@ def loadMenuDef(GUI, data, inx, out = ''):
 	GUI.MenuManager.updateTabName(menu['id'], menu['properties']['name'][0])
 	menu['name'] =  menu['properties']['name'][0]
 	
-def importMenuFile(GUI, filePath = 'C:/users/stevic0/desktop/test.menu', out = ''):
+def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/test.menu', out = ''):
 	log('Import started ', out = out)
 	try:
 		file = open(filePath, 'rb')

@@ -381,8 +381,13 @@ class Manage:
 			if element['properties']['textaligny'][2] != None:
 				element['properties']['textaligny'][2].var.set(str(value))
 		
-		alignX = int(element['properties']['textalignx'][0])
-		alignY = int(element['properties']['textaligny'][0])
+		try:
+			alignX = int(cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['textalignx'][0]))
+			alignY = int(cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['textaligny'][0]))
+		except:
+			alignX = 0
+			alignY = 0
+			
 		
 		x+=alignX
 		y+=alignY
@@ -430,7 +435,7 @@ class Manage:
 					else: self.canvas.itemconfigure(element['background'], image = element['imageR'])
 				except: pass
 				
-			if element['style'] != 'WINDOW_STYLE_SHADER':
+			if element['style'] != 'WINDOW_STYLE_SHADER' and element['style'] != cod2_default_element_settings.getValueFromKey('WINDOW_STYLE_SHADER'):
 				if element['type'] == 'image': self.canvas.itemconfigure(element['backImageC'], image = '')
 				else: self.canvas.itemconfigure(element['background'], image = '' )
 					
@@ -444,7 +449,7 @@ class Manage:
 		if element.has_key('supportBackImage'):
 			if updateImage:
 
-				if element['style'] != 'WINDOW_STYLE_FILLED':
+				if element['style'] != 'WINDOW_STYLE_FILLED' and element['style'] != cod2_default_element_settings.getValueFromKey('WINDOW_STYLE_FILLED'):
 					self.canvas.itemconfigure(element['backImageC'], image = '')
 				else:
 					try:
@@ -521,8 +526,13 @@ class Manage:
 				
 		
 		# bold 
-		if element['properties'].has_key('textfont'):
+		if element['properties'].has_key('textfont') and property == 'textfont':
 			newValue = cod2_default_element_settings.getMultipleValuesFromKey(element['properties']['textfont'][2].var.get())
+			
+			if newValue == '4':
+				newValue = 'bold'
+			else:
+				newValue = ''
 		
 			if element['bold'] != newValue:
 				element['bold'] = newValue
