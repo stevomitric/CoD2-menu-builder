@@ -1,0 +1,5 @@
+# Menu Builder, version 1.01 changelog
+
+- Import fixed for case-different properties (onEsc == ONEsc)
+- Added import console
+- Macro support for importing

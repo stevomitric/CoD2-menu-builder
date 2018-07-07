@@ -304,7 +304,7 @@ def loadMenuDef(GUI, data, inx, out = ''):
 	GUI.MenuManager.updateTabName(menu['id'], menu['properties']['name'][0])
 	menu['name'] =  menu['properties']['name'][0]
 	
-def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/test.menu', out = ''):
+def importMenuFile(GUI, filePath = 'C:/users/stevic0/desktop/test.menu', out = ''):
 	log('Import started ', out = out)
 	try:
 		file = open(filePath, 'rb')
@@ -326,11 +326,11 @@ def importMenuFile(GUI, filePath = 'C:/users/stevo/desktop/test.menu', out = '')
 		log('Following error occured while processing include: ' + str(err), 'critical', out = out)
 		return -2
 	
-	try:
-		data = translator_macro_process.processData(data)
-	except Exception, err:
-		log('Following error occured while macro-processing file: ' + str(err), 'critical', out = out)
-		return -1
+	#try:
+	data = translator_macro_process.processData(data)
+	#except Exception, err:
+	#	log('Following error occured while macro-processing file: ' + str(err), 'critical', out = out)
+	#	return -1
 	
 	try:
 		for i in range(len(data)):

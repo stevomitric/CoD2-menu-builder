@@ -12,7 +12,7 @@ This code has no licence, feel free to do whatever you want with it.
 
 import copy
 
-def loadDef(data, inx1, inx2):
+def loadDef(data, inx1, inx2, defs):
 	_def = {
 		'type': '',
 		'key': '',
@@ -48,8 +48,19 @@ def loadDef(data, inx1, inx2):
 				
 			value.append( data[inx1] )
 		
+			#print "line: ", data[inx1]
+			#insertData = checkFunctionDefs(copy.deepcopy(value), len(value)-1, defs)
+		
+		a1 = 0
+		while a1 < len(value):
+			line = value[a1]
+			value = checkFunctionDefs(value, a1, defs)
+			a1 += 1
+		
 		_def['arguments'] = arguments
 		_def['function'] = function
+	
+		#print value, '\n'
 	
 	else:
 		_def['type'] = 'standard'
@@ -114,11 +125,13 @@ def checkFunctionDefs(data, inx, defs):
 		for i in range(len(line)):
 			item = line[i]
 			
-			if item.startswith(_def['key']):
+			if item.startswith(_def['key']) and item[len(_def['key']):len(_def['key'])+1] == '(':
 				function = ' '.join(line[i:]).replace('\\', '')
-				
+
 				arguments = function.split('(')[1].split(')')[0].split(', ')
-				print arguments
+				
+				print 'Found function with arguments:', arguments
+				
 				insertData = copy.deepcopy(_def['value'])
 				for a1 in range(len(insertData)):
 					for a2 in range(len( insertData[a1] )):
@@ -143,7 +156,7 @@ def processData(data):
 		data[i] = checkStandardDefs(item, defs)
 	
 		if item[0] == '#define':
-			defs.append(loadDef(data, i, 1))
+			defs.append(loadDef(data, i, 1, defs))
 	
 	
 	# delete defs from file
