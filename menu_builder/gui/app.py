@@ -1,0 +1,366 @@
+"""Main application window — assembles all GUI panels."""
+
+from __future__ import annotations
+
+import copy
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+
+from menu_builder.models import MenuDef, MenuFile, ItemDef, Rect, Color
+from menu_builder.serializer import serialize
+from menu_builder.parser import parse_file
+from menu_builder.gui.canvas import MenuCanvas
+from menu_builder.gui.tree import MenuTree
+from menu_builder.gui.properties import PropertiesPanel
+from menu_builder.gui.code_preview import CodePreview
+
+
+class App(tk.Tk):
+    """Main application window."""
+
+    def __init__(self):
+        super().__init__()
+        self.title("CoD2 Menu Builder")
+        self.geometry("1280x800")
+        self.minsize(1024, 600)
+
+        # --- Data ---
+        self.menu_file = MenuFile(
+            menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480))]
+        )
+        self.current_menu_index = 0
+        self.selected_item: ItemDef | None = None
+        self._clipboard: ItemDef | None = None
+
+        # --- Menu Bar ---
+        self._build_menu_bar()
+
+        # --- Layout ---
+        self.main_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        self.main_pane.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        # Left: canvas + code preview
+        left_pane = ttk.PanedWindow(self.main_pane, orient=tk.VERTICAL)
+        self.main_pane.add(left_pane, weight=3)
+
+        canvas_frame = ttk.LabelFrame(left_pane, text="Visual Editor")
+        left_pane.add(canvas_frame, weight=3)
+
+        self.canvas = MenuCanvas(
+            canvas_frame,
+            on_select=self._on_canvas_select,
+            on_item_moved=self._on_item_moved,
+            on_item_resized=self._on_item_resized,
+            on_request_add=self._add_item,
+            on_request_delete=self._delete_selected,
+            on_request_duplicate=self._duplicate_selected,
+            on_request_bring_front=self._bring_to_front,
+            on_request_send_back=self._send_to_back,
+        )
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        code_frame = ttk.LabelFrame(left_pane, text=".menu Output")
+        left_pane.add(code_frame, weight=1)
+
+        self.code_preview = CodePreview(code_frame)
+        self.code_preview.pack(fill=tk.BOTH, expand=True)
+
+        # Right: tree + properties
+        right_pane = ttk.PanedWindow(self.main_pane, orient=tk.VERTICAL)
+        self.main_pane.add(right_pane, weight=1)
+
+        tree_frame = ttk.LabelFrame(right_pane, text="Menu Structure")
+        right_pane.add(tree_frame, weight=1)
+
+        self.tree = MenuTree(
+            tree_frame,
+            on_select_menu=self._on_tree_select_menu,
+            on_select_item=self._on_tree_select_item,
+        )
+        self.tree.pack(fill=tk.BOTH, expand=True)
+
+        props_frame = ttk.LabelFrame(right_pane, text="Properties")
+        right_pane.add(props_frame, weight=2)
+
+        self.properties = PropertiesPanel(
+            props_frame,
+            on_property_changed=self._on_property_changed,
+        )
+        self.properties.pack(fill=tk.BOTH, expand=True)
+
+        # --- Status Bar ---
+        self.status_var = tk.StringVar(value="Ready")
+        status_bar = ttk.Label(self, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+        status_bar.pack(fill=tk.X, side=tk.BOTTOM, padx=4, pady=2)
+
+        # --- Initial state ---
+        self._refresh_all()
+
+    # ------------------------------------------------------------------
+    # Menu bar
+    # ------------------------------------------------------------------
+
+    def _build_menu_bar(self):
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+
+        # File
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="New", command=self._file_new, accelerator="Ctrl+N")
+        file_menu.add_command(label="Open...", command=self._file_open, accelerator="Ctrl+O")
+        file_menu.add_command(label="Save As...", command=self._file_save_as, accelerator="Ctrl+S")
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.quit)
+
+        # Edit
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Add Menu", command=self._add_menu)
+        edit_menu.add_command(label="Add Item", command=self._add_item, accelerator="Ctrl+I")
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Copy", command=self._copy_selected, accelerator="Ctrl+C")
+        edit_menu.add_command(label="Paste", command=self._paste_item, accelerator="Ctrl+V")
+        edit_menu.add_command(label="Duplicate", command=self._duplicate_selected, accelerator="Ctrl+D")
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Bring to Front", command=self._bring_to_front)
+        edit_menu.add_command(label="Send to Back", command=self._send_to_back)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Delete Selected", command=self._delete_selected, accelerator="Delete")
+        edit_menu.add_command(label="Delete Menu", command=self._delete_menu)
+
+        # Keybindings
+        self.bind_all("<Control-n>", lambda e: self._file_new())
+        self.bind_all("<Control-o>", lambda e: self._file_open())
+        self.bind_all("<Control-s>", lambda e: self._file_save_as())
+        self.bind_all("<Control-i>", lambda e: self._add_item())
+        self.bind_all("<Control-c>", lambda e: self._copy_selected())
+        self.bind_all("<Control-v>", lambda e: self._paste_item())
+        self.bind_all("<Control-d>", lambda e: self._duplicate_selected())
+        self.bind_all("<Delete>", lambda e: self._delete_selected())
+
+    # ------------------------------------------------------------------
+    # File operations
+    # ------------------------------------------------------------------
+
+    def _file_new(self):
+        self.menu_file = MenuFile(
+            menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480))]
+        )
+        self.current_menu_index = 0
+        self.selected_item = None
+        self._refresh_all()
+        self._set_status("New file created")
+
+    def _file_open(self):
+        path = filedialog.askopenfilename(
+            title="Open .menu file",
+            filetypes=[("Menu files", "*.menu"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.menu_file = parse_file(path)
+            if not self.menu_file.menu_defs:
+                messagebox.showwarning("Warning", "File is a fragment (no menuDefs found).")
+                return
+            self.current_menu_index = 0
+            self.selected_item = None
+            self._refresh_all()
+            total_items = sum(len(m.items) for m in self.menu_file.menu_defs)
+            self._set_status(f"Opened: {len(self.menu_file.menu_defs)} menu(s), {total_items} item(s)")
+        except Exception as e:
+            messagebox.showerror("Parse Error", str(e))
+
+    def _file_save_as(self):
+        path = filedialog.asksaveasfilename(
+            title="Save .menu file",
+            defaultextension=".menu",
+            filetypes=[("Menu files", "*.menu"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            text = serialize(self.menu_file)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(text)
+            self._set_status(f"Saved: {path}")
+        except Exception as e:
+            messagebox.showerror("Save Error", str(e))
+
+    # ------------------------------------------------------------------
+    # Edit operations
+    # ------------------------------------------------------------------
+
+    def _add_menu(self):
+        idx = len(self.menu_file.menu_defs) + 1
+        menu = MenuDef(name=f"menu_{idx}", rect=Rect(0, 0, 640, 480))
+        self.menu_file.menu_defs.append(menu)
+        self.current_menu_index = len(self.menu_file.menu_defs) - 1
+        self.selected_item = None
+        self._refresh_all()
+        self._set_status(f"Added menu: {menu.name}")
+
+    def _delete_menu(self):
+        if len(self.menu_file.menu_defs) <= 1:
+            messagebox.showinfo("Info", "Cannot delete the last menu.")
+            return
+        name = self.menu_file.menu_defs[self.current_menu_index].name
+        del self.menu_file.menu_defs[self.current_menu_index]
+        self.current_menu_index = min(self.current_menu_index, len(self.menu_file.menu_defs) - 1)
+        self.selected_item = None
+        self._refresh_all()
+        self._set_status(f"Deleted menu: {name}")
+
+    def _add_item(self):
+        if not self.menu_file.menu_defs:
+            return
+        menu = self.menu_file.menu_defs[self.current_menu_index]
+        idx = len(menu.items) + 1
+        item = ItemDef(
+            name=f"item_{idx}",
+            rect=Rect(10, 10 + (idx - 1) * 35, 200, 30),
+            type=1,
+            text=f"Item {idx}",
+            forecolor=Color(1, 1, 1, 1),
+            visible=True,
+        )
+        menu.items.append(item)
+        self.selected_item = item
+        self._refresh_all()
+        self._set_status(f"Added item: {item.name}")
+
+    def _delete_selected(self):
+        if self.selected_item is None:
+            return
+        menu = self.menu_file.menu_defs[self.current_menu_index]
+        if self.selected_item in menu.items:
+            name = self.selected_item.name
+            menu.items.remove(self.selected_item)
+            self.selected_item = None
+            self._refresh_all()
+            self._set_status(f"Deleted item: {name}")
+
+    def _copy_selected(self):
+        if self.selected_item is None:
+            return
+        self._clipboard = copy.deepcopy(self.selected_item)
+        self._set_status(f"Copied: {self.selected_item.name}")
+
+    def _paste_item(self):
+        if self._clipboard is None or not self.menu_file.menu_defs:
+            return
+        menu = self.menu_file.menu_defs[self.current_menu_index]
+        item = copy.deepcopy(self._clipboard)
+        # Offset so it doesn't overlap exactly
+        item.rect.x += 20
+        item.rect.y += 20
+        item.name = f"{item.name}_copy"
+        menu.items.append(item)
+        self.selected_item = item
+        self._refresh_all()
+        self._set_status(f"Pasted: {item.name}")
+
+    def _duplicate_selected(self):
+        if self.selected_item is None or not self.menu_file.menu_defs:
+            return
+        menu = self.menu_file.menu_defs[self.current_menu_index]
+        item = copy.deepcopy(self.selected_item)
+        item.rect.x += 20
+        item.rect.y += 20
+        item.name = f"{self.selected_item.name}_dup"
+        menu.items.append(item)
+        self.selected_item = item
+        self._refresh_all()
+        self._set_status(f"Duplicated: {item.name}")
+
+    def _bring_to_front(self):
+        if self.selected_item is None:
+            return
+        menu = self.menu_file.menu_defs[self.current_menu_index]
+        if self.selected_item in menu.items:
+            menu.items.remove(self.selected_item)
+            menu.items.append(self.selected_item)
+            self._refresh_all()
+
+    def _send_to_back(self):
+        if self.selected_item is None:
+            return
+        menu = self.menu_file.menu_defs[self.current_menu_index]
+        if self.selected_item in menu.items:
+            menu.items.remove(self.selected_item)
+            menu.items.insert(0, self.selected_item)
+            self._refresh_all()
+
+    # ------------------------------------------------------------------
+    # Callbacks
+    # ------------------------------------------------------------------
+
+    def _on_canvas_select(self, item: ItemDef | None):
+        self.selected_item = item
+        self.tree.select_item(item)
+        self.properties.load(item, self._current_menu())
+        if item:
+            self._set_status(f"Selected: {item.name} ({int(item.rect.x)}, {int(item.rect.y)}) {int(item.rect.w)}x{int(item.rect.h)}")
+
+    def _on_item_moved(self, item: ItemDef, x: float, y: float):
+        item.rect.x = x
+        item.rect.y = y
+        self.properties.load(item, self._current_menu())
+        self._refresh_code()
+        self._set_status(f"{item.name}: moved to ({int(x)}, {int(y)})")
+
+    def _on_item_resized(self, item: ItemDef, w: float, h: float):
+        item.rect.w = w
+        item.rect.h = h
+        self.properties.load(item, self._current_menu())
+        self._refresh_code()
+        self._set_status(f"{item.name}: resized to {int(w)}x{int(h)}")
+
+    def _on_tree_select_menu(self, index: int):
+        self.current_menu_index = index
+        self.selected_item = None
+        self._refresh_canvas()
+        self._refresh_code()
+        self.properties.load(None, self._current_menu())
+        menu = self._current_menu()
+        if menu:
+            self._set_status(f"Menu: {menu.name} ({len(menu.items)} items)")
+
+    def _on_tree_select_item(self, item: ItemDef):
+        self.selected_item = item
+        self.canvas.select_item(item)
+        self.properties.load(item, self._current_menu())
+
+    def _on_property_changed(self):
+        self._refresh_canvas()
+        self._refresh_tree()
+        self._refresh_code()
+
+    # ------------------------------------------------------------------
+    # Refresh helpers
+    # ------------------------------------------------------------------
+
+    def _current_menu(self) -> MenuDef | None:
+        if not self.menu_file.menu_defs:
+            return None
+        return self.menu_file.menu_defs[self.current_menu_index]
+
+    def _refresh_all(self):
+        self._refresh_tree()
+        self._refresh_canvas()
+        self._refresh_code()
+        self.properties.load(self.selected_item, self._current_menu())
+
+    def _refresh_tree(self):
+        self.tree.load(self.menu_file, self.current_menu_index, self.selected_item)
+
+    def _refresh_canvas(self):
+        self.canvas.load(self._current_menu(), self.selected_item)
+
+    def _refresh_code(self):
+        text = serialize(self.menu_file)
+        self.code_preview.set_text(text)
+
+    def _set_status(self, msg: str):
+        self.status_var.set(msg)
