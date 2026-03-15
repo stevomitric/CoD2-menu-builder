@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter.ttk import *  # noqa: F403
 from typing import Callable
 
 from menu_builder.models import ItemDef, MenuDef, MenuFile
@@ -27,7 +27,7 @@ _TYPE_NAMES = {
 }
 
 
-class MenuTree(ttk.Frame):
+class MenuTree(Frame):
     """Tree view showing menuDef > itemDef hierarchy."""
 
     def __init__(
@@ -46,9 +46,8 @@ class MenuTree(ttk.Frame):
         self._item_to_node: dict[int, str] = {}  # id(ItemDef) -> tree node id
         self._suppress_select = False
 
-        # Treeview
-        self.tree = ttk.Treeview(self, show="tree", selectmode="browse")
-        scroll = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree = Treeview(self, show="tree", selectmode="browse")
+        scroll = Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scroll.set)
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -68,7 +67,6 @@ class MenuTree(ttk.Frame):
         self._node_to_item.clear()
         self._item_to_node.clear()
 
-        # Clear tree
         for child in self.tree.get_children():
             self.tree.delete(child)
 
@@ -76,7 +74,6 @@ class MenuTree(ttk.Frame):
             self._suppress_select = False
             return
 
-        # Build tree
         for i, menu in enumerate(menu_file.menu_defs):
             menu_label = f"menuDef: {menu.name or '(unnamed)'}"
             menu_node = self.tree.insert("", tk.END, text=menu_label, open=(i == current_menu_index))
@@ -91,11 +88,9 @@ class MenuTree(ttk.Frame):
                 self._node_to_item[item_node] = item
                 self._item_to_node[id(item)] = item_node
 
-        # Restore selection
         if selected_item is not None:
             self.select_item(selected_item)
         elif current_menu_index < len(menu_file.menu_defs):
-            # Select the menu node
             menu_nodes = self.tree.get_children()
             if current_menu_index < len(menu_nodes):
                 self.tree.selection_set(menu_nodes[current_menu_index])
@@ -128,14 +123,12 @@ class MenuTree(ttk.Frame):
 
         node = selection[0]
 
-        # Check if it's a menu node
         if node in self._node_to_menu_index:
             idx = self._node_to_menu_index[node]
             if self.on_select_menu:
                 self.on_select_menu(idx)
             return
 
-        # Check if it's an item node
         if node in self._node_to_item:
             item = self._node_to_item[node]
             if self.on_select_item:

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import copy
+import sys
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter.ttk import *  # noqa: F403 — override tk widgets with themed versions
+from tkinter import filedialog, messagebox
 
 from menu_builder.models import MenuDef, MenuFile, ItemDef, Rect, Color
 from menu_builder.serializer import serialize
@@ -39,14 +41,14 @@ class App(tk.Tk):
         self._build_menu_bar()
 
         # --- Layout ---
-        self.main_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        self.main_pane = PanedWindow(self, orient=tk.HORIZONTAL)
         self.main_pane.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
         # Left: canvas + code preview
-        left_pane = ttk.PanedWindow(self.main_pane, orient=tk.VERTICAL)
+        left_pane = PanedWindow(self.main_pane, orient=tk.VERTICAL)
         self.main_pane.add(left_pane, weight=3)
 
-        canvas_frame = ttk.LabelFrame(left_pane, text="Visual Editor")
+        canvas_frame = LabelFrame(left_pane, text="Visual Editor")
         left_pane.add(canvas_frame, weight=3)
 
         self.canvas = MenuCanvas(
@@ -62,17 +64,17 @@ class App(tk.Tk):
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        code_frame = ttk.LabelFrame(left_pane, text=".menu Output")
+        code_frame = LabelFrame(left_pane, text=".menu Output")
         left_pane.add(code_frame, weight=1)
 
         self.code_preview = CodePreview(code_frame)
         self.code_preview.pack(fill=tk.BOTH, expand=True)
 
         # Right: tree + properties
-        right_pane = ttk.PanedWindow(self.main_pane, orient=tk.VERTICAL)
+        right_pane = PanedWindow(self.main_pane, orient=tk.VERTICAL)
         self.main_pane.add(right_pane, weight=1)
 
-        tree_frame = ttk.LabelFrame(right_pane, text="Menu Structure")
+        tree_frame = LabelFrame(right_pane, text="Menu Structure")
         right_pane.add(tree_frame, weight=1)
 
         self.tree = MenuTree(
@@ -82,7 +84,7 @@ class App(tk.Tk):
         )
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-        props_frame = ttk.LabelFrame(right_pane, text="Properties")
+        props_frame = LabelFrame(right_pane, text="Properties")
         right_pane.add(props_frame, weight=2)
 
         self.properties = PropertiesPanel(
@@ -93,8 +95,9 @@ class App(tk.Tk):
 
         # --- Status Bar ---
         self.status_var = tk.StringVar(value="Ready")
-        status_bar = ttk.Label(self, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM, padx=4, pady=2)
+        Label(self, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W).pack(
+            fill=tk.X, side=tk.BOTTOM, padx=4, pady=2
+        )
 
         # --- Initial state ---
         self._refresh_all()
@@ -137,10 +140,10 @@ class App(tk.Tk):
         menubar.add_cascade(label="View", menu=view_menu)
         theme_menu = tk.Menu(view_menu, tearoff=0)
         view_menu.add_cascade(label="Theme", menu=theme_menu)
-        for theme_name in sorted(ttk.Style().theme_names()):
+        for name in sorted(Style().theme_names()):
             theme_menu.add_command(
-                label=theme_name,
-                command=lambda t=theme_name: self._set_theme(t),
+                label=name,
+                command=lambda t=name: self._set_theme(t),
             )
 
         # Keybindings
@@ -158,26 +161,33 @@ class App(tk.Tk):
     # ------------------------------------------------------------------
 
     def _setup_theme(self):
-        """Configure ttk theme for a clean look."""
-        style = ttk.Style(self)
-        # Pick the best available theme
-        preferred = ["clam", "aqua", "vista", "xpnative"]
+        """Configure ttk theme — modern look on all platforms."""
+        style = Style(self)
         available = style.theme_names()
+
+        # Platform-specific best theme:
+        #   Windows: vista (modern) > winnative > xpnative
+        #   macOS:   aqua (native)
+        #   Linux:   clam (cleanest)
+        if sys.platform == "win32":
+            preferred = ["vista", "winnative", "xpnative", "clam"]
+        elif sys.platform == "darwin":
+            preferred = ["aqua", "clam"]
+        else:
+            preferred = ["clam", "alt"]
+
         for theme in preferred:
             if theme in available:
                 style.theme_use(theme)
                 break
 
-        # Custom style tweaks on top of the theme
+        # Style tweaks
         style.configure("TLabelframe.Label", font=("TkDefaultFont", 9, "bold"))
         style.configure("Treeview", rowheight=22)
-        style.configure("TLabel", padding=(2, 1))
-        style.configure("TEntry", padding=(2, 1))
 
     def _set_theme(self, theme_name: str):
         """Switch ttk theme at runtime."""
-        style = ttk.Style(self)
-        style.theme_use(theme_name)
+        Style(self).theme_use(theme_name)
         self._set_status(f"Theme: {theme_name}")
 
     # ------------------------------------------------------------------
@@ -293,7 +303,6 @@ class App(tk.Tk):
             return
         menu = self.menu_file.menu_defs[self.current_menu_index]
         item = copy.deepcopy(self._clipboard)
-        # Offset so it doesn't overlap exactly
         item.rect.x += 20
         item.rect.y += 20
         item.name = f"{item.name}_copy"

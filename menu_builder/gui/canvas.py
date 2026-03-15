@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter.ttk import *  # noqa: F403
 from typing import Callable
 
 from menu_builder.models import ItemDef, MenuDef, Color
@@ -51,7 +51,7 @@ def _text_color_for_bg(c: Color | None) -> str:
     return "#000000" if lum > 0.5 else "#FFFFFF"
 
 
-class MenuCanvas(ttk.Frame):
+class MenuCanvas(Frame):
     """Canvas-based visual editor for menu items."""
 
     def __init__(
@@ -82,6 +82,7 @@ class MenuCanvas(ttk.Frame):
         self._drag_data: dict = {}
         self._resize_data: dict = {}
 
+        # tk.Canvas has no ttk equivalent
         self.canvas = tk.Canvas(
             self,
             width=CANVAS_W,
@@ -181,7 +182,6 @@ class MenuCanvas(ttk.Frame):
         type_style = _TYPE_STYLES.get(item.type, _TYPE_STYLES[None])
         type_badge, type_outline = type_style
 
-        # Background fill
         fill = _color_to_hex(item.backcolor, "#333333")
         outline = _color_to_hex(item.bordercolor, type_outline)
 
@@ -193,12 +193,11 @@ class MenuCanvas(ttk.Frame):
 
         self._item_ids[rect_id] = item
 
-        # Decoration indicator (dimmed)
+        # Decoration indicator
         if item.decoration:
             self.canvas.create_line(x0, y0, x0 + 8 * self._scale, y0, fill="#888888", width=2)
 
-        # Type badge (top-left corner)
-        badge_size = max(8, int(10 * self._scale))
+        # Type badge (top-left)
         self.canvas.create_text(
             x0 + 3, y0 + 2, text=type_badge, fill=type_outline,
             font=("TkDefaultFont", max(6, int(7 * self._scale)), "bold"),
@@ -225,7 +224,6 @@ class MenuCanvas(ttk.Frame):
         x0, y0 = self._to_screen(r.x, r.y)
         x1, y1 = self._to_screen(r.x + r.w, r.y + r.h)
 
-        # Selection outline
         self.canvas.create_rectangle(
             x0 - 1, y0 - 1, x1 + 1, y1 + 1,
             outline=SELECT_COLOR, width=2,
@@ -336,7 +334,6 @@ class MenuCanvas(ttk.Frame):
 
     def _on_right_click(self, event):
         """Show context menu on right-click."""
-        # First select the item under cursor (if any)
         sx, sy = event.x, event.y
         clicked = self.canvas.find_overlapping(sx - 2, sy - 2, sx + 2, sy + 2)
         item = None
@@ -351,7 +348,7 @@ class MenuCanvas(ttk.Frame):
                 self.on_select(item)
             self._redraw()
 
-        # Build context menu
+        # tk.Menu — no ttk equivalent
         ctx = tk.Menu(self, tearoff=0)
         ctx.add_command(label="Add Item", command=self._ctx_add)
         if self.selected_item is not None:

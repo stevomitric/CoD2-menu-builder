@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter.ttk import *  # noqa: F403
 
 
-class CodePreview(ttk.Frame):
+class CodePreview(Frame):
     """Read-only text widget showing the serialized .menu output."""
 
     def __init__(self, parent):
         super().__init__(parent)
 
-        # Text widget with scrollbar
+        # tk.Text — no ttk equivalent
         self.text = tk.Text(
             self,
             wrap=tk.NONE,
@@ -25,8 +25,8 @@ class CodePreview(ttk.Frame):
             padx=8,
             pady=4,
         )
-        yscroll = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.text.yview)
-        xscroll = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.text.xview)
+        yscroll = Scrollbar(self, orient=tk.VERTICAL, command=self.text.yview)
+        xscroll = Scrollbar(self, orient=tk.HORIZONTAL, command=self.text.xview)
         self.text.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
 
         xscroll.pack(side=tk.BOTTOM, fill=tk.X)

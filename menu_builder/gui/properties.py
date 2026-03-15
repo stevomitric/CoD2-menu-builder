@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter.ttk import *  # noqa: F403
 from typing import Callable
 
 from menu_builder.models import Color, ItemDef, MenuDef, Rect
@@ -44,7 +44,7 @@ TEXT_STYLES = [
 ]
 
 
-class PropertiesPanel(ttk.Frame):
+class PropertiesPanel(Frame):
     """Editable properties for the selected item or menu."""
 
     def __init__(self, parent, on_property_changed: Callable[[], None] | None = None):
@@ -54,10 +54,10 @@ class PropertiesPanel(ttk.Frame):
         self.menu: MenuDef | None = None
         self._suppress_events = False
 
-        # Scrollable frame
+        # Scrollable frame — tk.Canvas needed (no ttk equivalent)
         canvas = tk.Canvas(self, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=canvas.yview)
-        self.scroll_frame = ttk.Frame(canvas)
+        scrollbar = Scrollbar(self, orient=tk.VERTICAL, command=canvas.yview)
+        self.scroll_frame = Frame(canvas)
         self.scroll_frame.bind(
             "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
@@ -67,11 +67,10 @@ class PropertiesPanel(ttk.Frame):
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Enable mouse wheel scrolling
+        # Mouse wheel scrolling
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        # Linux scroll
         canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-3, "units"))
         canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(3, "units"))
 
@@ -83,7 +82,6 @@ class PropertiesPanel(ttk.Frame):
     # ------------------------------------------------------------------
 
     def load(self, item: ItemDef | None, menu: MenuDef | None):
-        """Load an item (or menu if item is None) into the properties panel."""
         self.item = item
         self.menu = menu
         self._rebuild()
@@ -94,7 +92,6 @@ class PropertiesPanel(ttk.Frame):
 
     def _rebuild(self):
         self._suppress_events = True
-        # Clear existing widgets
         for w in self._widgets:
             w.destroy()
         self._widgets.clear()
@@ -108,68 +105,66 @@ class PropertiesPanel(ttk.Frame):
         self._suppress_events = False
 
     def _add_section(self, title: str):
-        lbl = ttk.Label(self.scroll_frame, text=title, font=("TkDefaultFont", 10, "bold"))
+        lbl = Label(self.scroll_frame, text=title, font=("TkDefaultFont", 10, "bold"))
         lbl.pack(fill=tk.X, padx=5, pady=(10, 2))
         self._widgets.append(lbl)
-        sep = ttk.Separator(self.scroll_frame, orient=tk.HORIZONTAL)
+        sep = Separator(self.scroll_frame, orient=tk.HORIZONTAL)
         sep.pack(fill=tk.X, padx=5, pady=2)
         self._widgets.append(sep)
 
     def _add_entry(self, label: str, key: str, value: str) -> tk.StringVar:
-        frame = ttk.Frame(self.scroll_frame)
+        frame = Frame(self.scroll_frame)
         frame.pack(fill=tk.X, padx=5, pady=1)
         self._widgets.append(frame)
 
-        ttk.Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
         var = tk.StringVar(value=value)
-        entry = ttk.Entry(frame, textvariable=var, width=20)
-        entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        Entry(frame, textvariable=var, width=20).pack(side=tk.LEFT, fill=tk.X, expand=True)
         var.trace_add("write", lambda *_: self._on_change())
         self._vars[key] = var
         return var
 
     def _add_checkbox(self, label: str, key: str, value: bool) -> tk.BooleanVar:
-        frame = ttk.Frame(self.scroll_frame)
+        frame = Frame(self.scroll_frame)
         frame.pack(fill=tk.X, padx=5, pady=1)
         self._widgets.append(frame)
 
         var = tk.BooleanVar(value=value)
-        cb = ttk.Checkbutton(frame, text=label, variable=var)
-        cb.pack(side=tk.LEFT)
+        Checkbutton(frame, text=label, variable=var).pack(side=tk.LEFT)
         var.trace_add("write", lambda *_: self._on_change())
         self._vars[key] = var
         return var
 
     def _add_combo(self, label: str, key: str, options: list[tuple[int, str]], current: int | None) -> tk.StringVar:
-        frame = ttk.Frame(self.scroll_frame)
+        frame = Frame(self.scroll_frame)
         frame.pack(fill=tk.X, padx=5, pady=1)
         self._widgets.append(frame)
 
-        ttk.Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
         display_values = [name for _, name in options]
         var = tk.StringVar()
-        # Find current display value
         for val, name in options:
             if val == current:
                 var.set(name)
                 break
-        combo = ttk.Combobox(frame, textvariable=var, values=display_values, state="readonly", width=17)
-        combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        Combobox(frame, textvariable=var, values=display_values, state="readonly", width=17).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
         var.trace_add("write", lambda *_: self._on_change())
         self._vars[key] = var
         return var
 
     def _add_color(self, label: str, key: str, color: Color | None) -> tuple[tk.StringVar, ...]:
-        frame = ttk.Frame(self.scroll_frame)
+        frame = Frame(self.scroll_frame)
         frame.pack(fill=tk.X, padx=5, pady=1)
         self._widgets.append(frame)
 
-        ttk.Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
         c = color or Color(0, 0, 0, 0)
         vars_ = []
         for comp, val in [("R", c.r), ("G", c.g), ("B", c.b), ("A", c.a)]:
             v = tk.StringVar(value=f"{val:.2f}")
-            ttk.Entry(frame, textvariable=v, width=5).pack(side=tk.LEFT, padx=1)
+            Entry(frame, textvariable=v, width=5).pack(side=tk.LEFT, padx=1)
             v.trace_add("write", lambda *_: self._on_change())
             k = f"{key}_{comp.lower()}"
             self._vars[k] = v
