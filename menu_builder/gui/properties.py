@@ -44,7 +44,7 @@ TEXT_STYLES = [
 ]
 
 
-class PropertiesPanel(tk.Frame):
+class PropertiesPanel(ttk.Frame):
     """Editable properties for the selected item or menu."""
 
     def __init__(self, parent, on_property_changed: Callable[[], None] | None = None):

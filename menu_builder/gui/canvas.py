@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import ttk
 from typing import Callable
 
 from menu_builder.models import ItemDef, MenuDef, Color
@@ -50,7 +51,7 @@ def _text_color_for_bg(c: Color | None) -> str:
     return "#000000" if lum > 0.5 else "#FFFFFF"
 
 
-class MenuCanvas(tk.Frame):
+class MenuCanvas(ttk.Frame):
     """Canvas-based visual editor for menu items."""
 
     def __init__(

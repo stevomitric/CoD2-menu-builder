@@ -24,6 +24,9 @@ class App(tk.Tk):
         self.geometry("1280x800")
         self.minsize(1024, 600)
 
+        # --- Theme ---
+        self._setup_theme()
+
         # --- Data ---
         self.menu_file = MenuFile(
             menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480))]
@@ -129,6 +132,17 @@ class App(tk.Tk):
         edit_menu.add_command(label="Delete Selected", command=self._delete_selected, accelerator="Delete")
         edit_menu.add_command(label="Delete Menu", command=self._delete_menu)
 
+        # View
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        theme_menu = tk.Menu(view_menu, tearoff=0)
+        view_menu.add_cascade(label="Theme", menu=theme_menu)
+        for theme_name in sorted(ttk.Style().theme_names()):
+            theme_menu.add_command(
+                label=theme_name,
+                command=lambda t=theme_name: self._set_theme(t),
+            )
+
         # Keybindings
         self.bind_all("<Control-n>", lambda e: self._file_new())
         self.bind_all("<Control-o>", lambda e: self._file_open())
@@ -138,6 +152,33 @@ class App(tk.Tk):
         self.bind_all("<Control-v>", lambda e: self._paste_item())
         self.bind_all("<Control-d>", lambda e: self._duplicate_selected())
         self.bind_all("<Delete>", lambda e: self._delete_selected())
+
+    # ------------------------------------------------------------------
+    # Theme
+    # ------------------------------------------------------------------
+
+    def _setup_theme(self):
+        """Configure ttk theme for a clean look."""
+        style = ttk.Style(self)
+        # Pick the best available theme
+        preferred = ["clam", "aqua", "vista", "xpnative"]
+        available = style.theme_names()
+        for theme in preferred:
+            if theme in available:
+                style.theme_use(theme)
+                break
+
+        # Custom style tweaks on top of the theme
+        style.configure("TLabelframe.Label", font=("TkDefaultFont", 9, "bold"))
+        style.configure("Treeview", rowheight=22)
+        style.configure("TLabel", padding=(2, 1))
+        style.configure("TEntry", padding=(2, 1))
+
+    def _set_theme(self, theme_name: str):
+        """Switch ttk theme at runtime."""
+        style = ttk.Style(self)
+        style.theme_use(theme_name)
+        self._set_status(f"Theme: {theme_name}")
 
     # ------------------------------------------------------------------
     # File operations

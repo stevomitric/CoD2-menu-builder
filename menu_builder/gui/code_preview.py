@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 
 
-class CodePreview(tk.Frame):
+class CodePreview(ttk.Frame):
     """Read-only text widget showing the serialized .menu output."""
 
     def __init__(self, parent):

@@ -27,7 +27,7 @@ _TYPE_NAMES = {
 }
 
 
-class MenuTree(tk.Frame):
+class MenuTree(ttk.Frame):
     """Tree view showing menuDef > itemDef hierarchy."""
 
     def __init__(
