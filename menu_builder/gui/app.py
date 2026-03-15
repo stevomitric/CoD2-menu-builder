@@ -45,9 +45,12 @@ class App(tk.Tk):
         self.main_pane = PanedWindow(self, orient=tk.HORIZONTAL)
         self.main_pane.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
-        # Left: Notebook with Visual Editor tab and Code tab
-        self.notebook = Notebook(self.main_pane)
-        self.main_pane.add(self.notebook, weight=3)
+        # Left: Editor LabelFrame containing Notebook
+        editor_frame = LabelFrame(self.main_pane, text="Editor")
+        self.main_pane.add(editor_frame, weight=3)
+
+        self.notebook = Notebook(editor_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
         # Tab 1: Visual Editor
         canvas_frame = Frame(self.notebook)
@@ -66,9 +69,9 @@ class App(tk.Tk):
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Tab 2: Code Output
+        # Tab 2: Textual Viewer
         code_frame = Frame(self.notebook)
-        self.notebook.add(code_frame, text="  .menu Code  ")
+        self.notebook.add(code_frame, text="  Textual Viewer  ")
 
         self.code_preview = CodePreview(code_frame)
         self.code_preview.pack(fill=tk.BOTH, expand=True)

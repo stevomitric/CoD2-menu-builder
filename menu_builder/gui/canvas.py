@@ -18,6 +18,13 @@ SELECT_COLOR = "#FFD700"
 HANDLE_SIZE = 6
 MIN_ITEM_SIZE = 10
 
+# Blueprint color palette
+BP_BG = "#1a3a5c"          # deep blueprint blue (canvas surround)
+BP_AREA_BG = "#1e4470"     # slightly lighter (640x480 area)
+BP_GRID_FINE = "#25537f"   # fine grid lines (every 10px)
+BP_GRID_MAJOR = "#3a6a9a"  # major grid lines (every 50px)
+BP_BORDER = "#4a88bb"      # 640x480 border
+
 # Item type display config: (label_prefix, default_outline_color)
 _TYPE_STYLES: dict[int | None, tuple[str, str]] = {
     0:  ("T",  "#6688AA"),   # TEXT
@@ -87,7 +94,7 @@ class MenuCanvas(Frame):
             self,
             width=CANVAS_W,
             height=CANVAS_H,
-            bg="#1a1a1a",
+            bg=BP_BG,
             highlightthickness=0,
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -146,10 +153,10 @@ class MenuCanvas(Frame):
         self._item_ids.clear()
         self._calc_transform()
 
-        # Draw 640x480 background
+        # Draw 640x480 blueprint area
         x0, y0 = self._to_screen(0, 0)
         x1, y1 = self._to_screen(CANVAS_W, CANVAS_H)
-        self.canvas.create_rectangle(x0, y0, x1, y1, fill="#111111", outline="#444444", width=1)
+        self.canvas.create_rectangle(x0, y0, x1, y1, fill=BP_AREA_BG, outline=BP_BORDER, width=2)
 
         self._draw_grid()
 
@@ -165,14 +172,25 @@ class MenuCanvas(Frame):
             self._draw_selection(self.selected_item)
 
     def _draw_grid(self):
+        # Fine grid (every GRID_SIZE pixels)
+        for gx in range(0, CANVAS_W + 1, GRID_SIZE):
+            sx0, sy0 = self._to_screen(gx, 0)
+            sx1, sy1 = self._to_screen(gx, CANVAS_H)
+            self.canvas.create_line(sx0, sy0, sx1, sy1, fill=BP_GRID_FINE, width=1)
+        for gy in range(0, CANVAS_H + 1, GRID_SIZE):
+            sx0, sy0 = self._to_screen(0, gy)
+            sx1, sy1 = self._to_screen(CANVAS_W, gy)
+            self.canvas.create_line(sx0, sy0, sx1, sy1, fill=BP_GRID_FINE, width=1)
+
+        # Major grid (every 50px) — brighter lines
         for gx in range(0, CANVAS_W + 1, GRID_SIZE * 5):
             sx0, sy0 = self._to_screen(gx, 0)
             sx1, sy1 = self._to_screen(gx, CANVAS_H)
-            self.canvas.create_line(sx0, sy0, sx1, sy1, fill="#222222", width=1)
+            self.canvas.create_line(sx0, sy0, sx1, sy1, fill=BP_GRID_MAJOR, width=1)
         for gy in range(0, CANVAS_H + 1, GRID_SIZE * 5):
             sx0, sy0 = self._to_screen(0, gy)
             sx1, sy1 = self._to_screen(CANVAS_W, gy)
-            self.canvas.create_line(sx0, sy0, sx1, sy1, fill="#222222", width=1)
+            self.canvas.create_line(sx0, sy0, sx1, sy1, fill=BP_GRID_MAJOR, width=1)
 
     def _draw_item(self, item: ItemDef):
         r = item.rect
@@ -189,7 +207,7 @@ class MenuCanvas(Frame):
         if is_filled:
             rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline)
         else:
-            rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill="", outline=outline, dash=(2, 2))
+            rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill="", outline="#7ab0d4", dash=(3, 2))
 
         self._item_ids[rect_id] = item
 
