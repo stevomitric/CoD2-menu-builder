@@ -266,6 +266,19 @@ class MenuCanvas(Frame):
     # Interaction
     # ------------------------------------------------------------------
 
+    def _hit_test(self, sx: float, sy: float) -> ItemDef | None:
+        """Find the top-most item whose bounding box contains (sx, sy)."""
+        if self.menu is None:
+            return None
+        # Walk items in reverse (last drawn = top-most)
+        for item in reversed(self.menu.items):
+            r = item.rect
+            x0, y0 = self._to_screen(r.x, r.y)
+            x1, y1 = self._to_screen(r.x + r.w, r.y + r.h)
+            if x0 <= sx <= x1 and y0 <= sy <= y1:
+                return item
+        return None
+
     def _on_configure(self, event):
         self._redraw()
 
@@ -289,13 +302,8 @@ class MenuCanvas(Frame):
                 }
                 return
 
-        # Find clicked item (top-most first)
-        clicked = self.canvas.find_overlapping(sx - 2, sy - 2, sx + 2, sy + 2)
-        item = None
-        for cid in reversed(clicked):
-            if cid in self._item_ids:
-                item = self._item_ids[cid]
-                break
+        # Find clicked item by bounding box (top-most = last in list)
+        item = self._hit_test(sx, sy)
 
         self.selected_item = item
         if self.on_select:
@@ -352,13 +360,7 @@ class MenuCanvas(Frame):
 
     def _on_right_click(self, event):
         """Show context menu on right-click."""
-        sx, sy = event.x, event.y
-        clicked = self.canvas.find_overlapping(sx - 2, sy - 2, sx + 2, sy + 2)
-        item = None
-        for cid in reversed(clicked):
-            if cid in self._item_ids:
-                item = self._item_ids[cid]
-                break
+        item = self._hit_test(event.x, event.y)
 
         if item is not None and item != self.selected_item:
             self.selected_item = item
