@@ -41,15 +41,17 @@ class App(tk.Tk):
         self._build_menu_bar()
 
         # --- Layout ---
+        # Main horizontal split: left (notebook) | right (tree + properties)
         self.main_pane = PanedWindow(self, orient=tk.HORIZONTAL)
         self.main_pane.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
-        # Left: canvas + code preview
-        left_pane = PanedWindow(self.main_pane, orient=tk.VERTICAL)
-        self.main_pane.add(left_pane, weight=3)
+        # Left: Notebook with Visual Editor tab and Code tab
+        self.notebook = Notebook(self.main_pane)
+        self.main_pane.add(self.notebook, weight=3)
 
-        canvas_frame = LabelFrame(left_pane, text="Visual Editor")
-        left_pane.add(canvas_frame, weight=3)
+        # Tab 1: Visual Editor
+        canvas_frame = Frame(self.notebook)
+        self.notebook.add(canvas_frame, text="  Visual Editor  ")
 
         self.canvas = MenuCanvas(
             canvas_frame,
@@ -64,13 +66,17 @@ class App(tk.Tk):
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        code_frame = LabelFrame(left_pane, text=".menu Output")
-        left_pane.add(code_frame, weight=1)
+        # Tab 2: Code Output
+        code_frame = Frame(self.notebook)
+        self.notebook.add(code_frame, text="  .menu Code  ")
 
         self.code_preview = CodePreview(code_frame)
         self.code_preview.pack(fill=tk.BOTH, expand=True)
 
-        # Right: tree + properties
+        # Update code when switching to code tab
+        self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+
+        # Right: tree + properties (vertical split)
         right_pane = PanedWindow(self.main_pane, orient=tk.VERTICAL)
         self.main_pane.add(right_pane, weight=1)
 
@@ -165,10 +171,7 @@ class App(tk.Tk):
         style = Style(self)
         available = style.theme_names()
 
-        # Platform-specific best theme:
-        #   Windows: vista (modern) > winnative > xpnative
-        #   macOS:   aqua (native)
-        #   Linux:   clam (cleanest)
+        # Platform-specific best theme
         if sys.platform == "win32":
             preferred = ["vista", "winnative", "xpnative", "clam"]
         elif sys.platform == "darwin":
@@ -181,8 +184,12 @@ class App(tk.Tk):
                 style.theme_use(theme)
                 break
 
-        # Style tweaks
-        style.configure("TLabelframe.Label", font=("TkDefaultFont", 9, "bold"))
+        # LabelFrame: not bold, blue on Windows (matches native look)
+        if sys.platform == "win32":
+            style.configure("TLabelframe.Label", foreground="#003399")
+        else:
+            style.configure("TLabelframe.Label", foreground="#336699")
+
         style.configure("Treeview", rowheight=22)
 
     def _set_theme(self, theme_name: str):
@@ -386,6 +393,12 @@ class App(tk.Tk):
         self._refresh_canvas()
         self._refresh_tree()
         self._refresh_code()
+
+    def _on_tab_changed(self, event):
+        """Refresh code preview when switching to the code tab."""
+        current = self.notebook.index(self.notebook.select())
+        if current == 1:  # Code tab
+            self._refresh_code()
 
     # ------------------------------------------------------------------
     # Refresh helpers
