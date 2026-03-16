@@ -177,6 +177,16 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
+    def _add_spinbox(self, parent: Frame, label: str, key: str, value: int, from_: int, to: int) -> tk.StringVar:
+        frame = Frame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=1)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        var = tk.StringVar(value=str(value))
+        Spinbox(frame, textvariable=var, from_=from_, to=to, width=5).pack(side=tk.LEFT)
+        var.trace_add("write", lambda *_: self._on_change())
+        self._vars[key] = var
+        return var
+
     def _add_color(self, parent: Frame, label: str, key: str, color: Color | None) -> tuple[tk.StringVar, ...]:
         frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
@@ -227,7 +237,11 @@ class PropertiesPanel(Frame):
         self._add_section(tab, "Colors")
         self._add_color(tab, "Forecolor", "forecolor", item.forecolor)
         self._add_color(tab, "Backcolor", "backcolor", item.backcolor)
-        self._add_color(tab, "Border", "bordercolor", item.bordercolor)
+
+        self._add_section(tab, "Border")
+        self._add_checkbox(tab, "Border", "border", item.border is not None and item.border > 0)
+        self._add_spinbox(tab, "Thickness", "bordersize", item.bordersize or 1, 1, 5)
+        self._add_color(tab, "Color", "bordercolor", item.bordercolor)
 
         # --- Text ---
         tab = self._make_tab("Text")
@@ -385,8 +399,11 @@ class PropertiesPanel(Frame):
         item.style = self._get_combo_int("style", WINDOW_STYLES)
         item.forecolor = self._get_color("forecolor")
         item.backcolor = self._get_color("backcolor")
-        item.bordercolor = self._get_color("bordercolor")
         item.background = self._get_str_or_none("background")
+
+        item.border = 1 if self._get_bool("border") else None
+        item.bordersize = self._get_int("bordersize", 1)
+        item.bordercolor = self._get_color("bordercolor")
 
         item.text = self._get_str_or_none("text")
         item.textscale = self._get_float_or_none("textscale")
@@ -464,6 +481,7 @@ class PropertiesPanel(Frame):
         self._set_var("background", item.background or "")
         self._set_color_vars("forecolor", item.forecolor)
         self._set_color_vars("backcolor", item.backcolor)
+        self._set_var("bordersize", str(item.bordersize or 1))
         self._set_color_vars("bordercolor", item.bordercolor)
         self._set_var("dvar", item.dvar or "")
         self._set_var("dvar_test", item.dvar_test or "")

@@ -215,23 +215,31 @@ class MenuCanvas(Frame):
         type_style = _TYPE_STYLES.get(item.type, _TYPE_STYLES[None])
         type_badge, type_outline = type_style
 
-        outline = _color_to_hex(item.bordercolor, type_outline)
-
         # Only FILLED (1) renders backcolor; EMPTY/SHADER/DVAR_SHADER render as empty
         is_filled = item.style == 1
         fill = _color_to_hex(item.backcolor, "#333333") if is_filled else ""
 
+        # Draw the item rectangle (thin type-colored outline as editor hint)
         if hidden:
             rect_id = self.canvas.create_rectangle(
                 x0, y0, x1, y1, fill=fill if is_filled else "",
                 outline="#556677", dash=(4, 4), stipple="gray25" if is_filled else "",
             )
         elif is_filled:
-            rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline)
+            rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=type_outline, width=1)
         else:
             rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill="", outline="#7ab0d4", dash=(3, 2))
 
         self._item_ids[rect_id] = item
+
+        # Border (drawn on top of fill when border is enabled)
+        has_border = item.border is not None and item.border > 0
+        if has_border and not hidden:
+            border_color = _color_to_hex(item.bordercolor, "#ffffff")
+            border_width = max(1, int((item.bordersize or 1) * self._scale))
+            self.canvas.create_rectangle(
+                x0, y0, x1, y1, fill="", outline=border_color, width=border_width,
+            )
 
         # Type badge (top-left)
         badge_color = "#556677" if hidden else type_outline
