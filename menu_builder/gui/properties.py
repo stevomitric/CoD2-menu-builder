@@ -232,7 +232,7 @@ class PropertiesPanel(Frame):
 
         self._add_section(tab, "Window")
         self._add_combo(tab, "Style", "style", WINDOW_STYLES, item.style)
-        self._add_entry(tab, "Background", "background", item.background or "")
+        self._add_readonly(tab, "Background", item.background or "(shader — not yet supported)")
 
         self._add_section(tab, "Colors")
         self._add_color(tab, "Forecolor", "forecolor", item.forecolor)
@@ -399,7 +399,6 @@ class PropertiesPanel(Frame):
         item.style = self._get_combo_int("style", WINDOW_STYLES)
         item.forecolor = self._get_color("forecolor")
         item.backcolor = self._get_color("backcolor")
-        item.background = self._get_str_or_none("background")
 
         item.border = 1 if self._get_bool("border") else None
         item.bordersize = self._get_int("bordersize", 1)
@@ -478,7 +477,6 @@ class PropertiesPanel(Frame):
         self._set_var("textscale", str(item.textscale) if item.textscale is not None else "")
         self._set_var("textalignx", str(item.textalignx) if item.textalignx is not None else "")
         self._set_var("textaligny", str(item.textaligny) if item.textaligny is not None else "")
-        self._set_var("background", item.background or "")
         self._set_color_vars("forecolor", item.forecolor)
         self._set_color_vars("backcolor", item.backcolor)
         self._set_var("bordersize", str(item.bordersize or 1))

@@ -310,6 +310,8 @@ class App(tk.Tk):
             type=item_type,
             text=f"{_TYPE_DISPLAY.get(item_type, 'Item')} {idx}",
             forecolor=Color(1, 1, 1, 1),
+            backcolor=Color(0, 0, 0, 1),
+            bordercolor=Color(1, 1, 1, 1),
             visible=True,
         )
         menu.items.append(item)
