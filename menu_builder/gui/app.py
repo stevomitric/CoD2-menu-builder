@@ -383,9 +383,11 @@ class App(tk.Tk):
     # ------------------------------------------------------------------
 
     def _on_canvas_select(self, item: ItemDef | None):
+        prev = self.selected_item
         self.selected_item = item
         self.tree.select_item(item)
-        self.properties.load(item, self._current_menu())
+        if item is not prev:
+            self.properties.load(item, self._current_menu())
         if item:
             self._set_status(f"Selected: {item.name} ({int(item.rect.x)}, {int(item.rect.y)}) {int(item.rect.w)}x{int(item.rect.h)}")
 
@@ -404,19 +406,24 @@ class App(tk.Tk):
         self._set_status(f"{item.name}: resized to {int(w)}x{int(h)}")
 
     def _on_tree_select_menu(self, index: int):
+        prev_index = self.current_menu_index
+        prev_item = self.selected_item
         self.current_menu_index = index
         self.selected_item = None
         self._refresh_canvas()
         self._refresh_code()
-        self.properties.load(None, self._current_menu())
+        if index != prev_index or prev_item is not None:
+            self.properties.load(None, self._current_menu())
         menu = self._current_menu()
         if menu:
             self._set_status(f"Menu: {menu.name} ({len(menu.items)} items)")
 
     def _on_tree_select_item(self, item: ItemDef):
+        prev = self.selected_item
         self.selected_item = item
         self.canvas.select_item(item)
-        self.properties.load(item, self._current_menu())
+        if item is not prev:
+            self.properties.load(item, self._current_menu())
 
     def _on_property_changed(self):
         self._refresh_canvas()
