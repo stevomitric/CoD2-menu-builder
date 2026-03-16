@@ -18,8 +18,6 @@ SELECT_COLOR = "#FFD700"
 HANDLE_SIZE = 6
 MIN_ITEM_SIZE = 10
 
-# CoD2 uses Futura-style fonts — Century Gothic is the closest Windows system font
-ITEM_FONT_FAMILY = "Century Gothic"
 
 # Blueprint color palette
 BP_BG = "#1a3a5c"          # deep blueprint blue (canvas surround)
@@ -263,10 +261,13 @@ class MenuCanvas(Frame):
             tc = "#556677" if hidden else _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
             cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
             font_size = max(8, int(10 * self._scale))
+            # Autowrapped: constrain text width to item rect
+            wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
             text_id = self.canvas.create_text(
                 cx, cy, text=label, fill=tc,
-                font=(ITEM_FONT_FAMILY, font_size),
+                font=("TkDefaultFont", font_size),
                 anchor=tk.CENTER,
+                width=wrap_width,
             )
             self._item_ids[text_id] = item
 
