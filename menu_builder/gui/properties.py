@@ -1,4 +1,4 @@
-"""Properties panel — edit selected item or menu properties."""
+"""Properties panel — edit selected item or menu properties via tabbed notebook."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Callable
 from menu_builder.models import Color, ItemDef, MenuDef, Rect
 
 
-# Item type options for dropdown
+# Item type options
 ITEM_TYPES = [
     (0, "TEXT"),
     (1, "BUTTON"),
@@ -43,7 +43,6 @@ TEXT_STYLES = [
     (6, "SHADOWEDMORE"),
 ]
 
-
 _TYPE_DISPLAY = {t: n for t, n in ITEM_TYPES}
 
 
@@ -54,7 +53,7 @@ def _type_display_name(type_id: int | None) -> str:
 
 
 class PropertiesPanel(Frame):
-    """Editable properties for the selected item or menu."""
+    """Tabbed properties editor for items and menus."""
 
     def __init__(self, parent, on_property_changed: Callable[[], None] | None = None):
         super().__init__(parent)
@@ -62,29 +61,14 @@ class PropertiesPanel(Frame):
         self.item: ItemDef | None = None
         self.menu: MenuDef | None = None
         self._suppress_events = False
-
-        # Scrollable frame — tk.Canvas needed (no ttk equivalent)
-        canvas = tk.Canvas(self, highlightthickness=0)
-        scrollbar = Scrollbar(self, orient=tk.VERTICAL, command=canvas.yview)
-        self.scroll_frame = Frame(canvas)
-        self.scroll_frame.bind(
-            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        canvas.create_window((0, 0), window=self.scroll_frame, anchor=tk.NW)
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Mouse wheel scrolling
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-3, "units"))
-        canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(3, "units"))
-
         self._vars: dict[str, tk.Variable] = {}
-        self._widgets: list[tk.Widget] = []
+
+        # Notebook fills the panel
+        self.notebook = Notebook(self)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
+
+        # Placeholder shown when nothing is selected
+        self._empty_label = Label(self, text="Select an item or menu", foreground="#999999", anchor=tk.CENTER)
 
     # ------------------------------------------------------------------
     # Public API
@@ -101,39 +85,79 @@ class PropertiesPanel(Frame):
 
     def _rebuild(self):
         self._suppress_events = True
-        for w in self._widgets:
-            w.destroy()
-        self._widgets.clear()
         self._vars.clear()
 
+        # Clear all tabs
+        for tab_id in self.notebook.tabs():
+            self.notebook.forget(tab_id)
+
         if self.item is not None:
+            self._empty_label.pack_forget()
+            self.notebook.pack(fill=tk.BOTH, expand=True)
             self._build_item_props()
         elif self.menu is not None:
+            self._empty_label.pack_forget()
+            self.notebook.pack(fill=tk.BOTH, expand=True)
             self._build_menu_props()
+        else:
+            self.notebook.pack_forget()
+            self._empty_label.pack(fill=tk.BOTH, expand=True)
 
         self._suppress_events = False
 
-    def _add_section(self, title: str):
-        lbl = Label(self.scroll_frame, text=title, font=("TkDefaultFont", 10, "bold"))
-        lbl.pack(fill=tk.X, padx=5, pady=(10, 2))
-        self._widgets.append(lbl)
-        sep = Separator(self.scroll_frame, orient=tk.HORIZONTAL)
-        sep.pack(fill=tk.X, padx=5, pady=2)
-        self._widgets.append(sep)
+    def _make_tab(self, title: str) -> Frame:
+        """Create a scrollable tab and return its content frame."""
+        outer = Frame(self.notebook)
+        self.notebook.add(outer, text=f"  {title}  ")
 
-    def _add_readonly(self, label: str, value: str):
-        frame = Frame(self.scroll_frame)
+        canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0)
+        scrollbar = Scrollbar(outer, orient=tk.VERTICAL, command=canvas.yview)
+        inner = Frame(canvas)
+        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=inner, anchor=tk.NW)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Mouse wheel
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _bind_wheel(event):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-3, "units"))
+            canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(3, "units"))
+
+        def _unbind_wheel(event):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        outer.bind("<Enter>", _bind_wheel)
+        outer.bind("<Leave>", _unbind_wheel)
+
+        return inner
+
+    # ------------------------------------------------------------------
+    # Widget helpers — all take a parent frame
+    # ------------------------------------------------------------------
+
+    def _add_section(self, parent: Frame, title: str):
+        Label(parent, text=title, font=("TkDefaultFont", 9, "bold")).pack(
+            fill=tk.X, padx=5, pady=(8, 2)
+        )
+        Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=2)
+
+    def _add_readonly(self, parent: Frame, label: str, value: str):
+        frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
-        self._widgets.append(frame)
-
         Label(frame, text=label, width=12).pack(side=tk.LEFT)
         Label(frame, text=value, foreground="#666666").pack(side=tk.LEFT)
 
-    def _add_entry(self, label: str, key: str, value: str) -> tk.StringVar:
-        frame = Frame(self.scroll_frame)
+    def _add_entry(self, parent: Frame, label: str, key: str, value: str) -> tk.StringVar:
+        frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
-        self._widgets.append(frame)
-
         Label(frame, text=label, width=12).pack(side=tk.LEFT)
         var = tk.StringVar(value=value)
         Entry(frame, textvariable=var, width=20).pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -141,22 +165,18 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
-    def _add_checkbox(self, label: str, key: str, value: bool) -> tk.BooleanVar:
-        frame = Frame(self.scroll_frame)
+    def _add_checkbox(self, parent: Frame, label: str, key: str, value: bool) -> tk.BooleanVar:
+        frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
-        self._widgets.append(frame)
-
         var = tk.BooleanVar(value=value)
         Checkbutton(frame, text=label, variable=var).pack(side=tk.LEFT)
         var.trace_add("write", lambda *_: self._on_change())
         self._vars[key] = var
         return var
 
-    def _add_combo(self, label: str, key: str, options: list[tuple[int, str]], current: int | None) -> tk.StringVar:
-        frame = Frame(self.scroll_frame)
+    def _add_combo(self, parent: Frame, label: str, key: str, options: list[tuple[int, str]], current: int | None) -> tk.StringVar:
+        frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
-        self._widgets.append(frame)
-
         Label(frame, text=label, width=12).pack(side=tk.LEFT)
         display_values = [name for _, name in options]
         var = tk.StringVar()
@@ -171,11 +191,9 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
-    def _add_color(self, label: str, key: str, color: Color | None) -> tuple[tk.StringVar, ...]:
-        frame = Frame(self.scroll_frame)
+    def _add_color(self, parent: Frame, label: str, key: str, color: Color | None) -> tuple[tk.StringVar, ...]:
+        frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
-        self._widgets.append(frame)
-
         Label(frame, text=label, width=12).pack(side=tk.LEFT)
         c = color or Color(0, 0, 0, 0)
         vars_ = []
@@ -183,91 +201,121 @@ class PropertiesPanel(Frame):
             v = tk.StringVar(value=f"{val:.2f}")
             Entry(frame, textvariable=v, width=5).pack(side=tk.LEFT, padx=1)
             v.trace_add("write", lambda *_: self._on_change())
-            k = f"{key}_{comp.lower()}"
-            self._vars[k] = v
+            self._vars[f"{key}_{comp.lower()}"] = v
             vars_.append(v)
         return tuple(vars_)
 
     # ------------------------------------------------------------------
-    # Item properties
+    # Item properties — 4 tabs
     # ------------------------------------------------------------------
 
     def _build_item_props(self):
         item = self.item
 
-        self._add_section("Identity")
-        self._add_entry("Name", "name", item.name)
-        self._add_readonly("Type", _type_display_name(item.type))
-        self._add_entry("Group", "group", item.group or "")
+        # --- General ---
+        tab = self._make_tab("General")
 
-        self._add_section("Position & Size")
-        self._add_entry("X", "rect_x", str(int(item.rect.x)))
-        self._add_entry("Y", "rect_y", str(int(item.rect.y)))
-        self._add_entry("W", "rect_w", str(int(item.rect.w)))
-        self._add_entry("H", "rect_h", str(int(item.rect.h)))
+        self._add_section(tab, "Identity")
+        self._add_entry(tab, "Name", "name", item.name)
+        self._add_readonly(tab, "Type", _type_display_name(item.type))
+        self._add_entry(tab, "Group", "group", item.group or "")
 
-        self._add_section("Text")
-        self._add_entry("Text", "text", item.text or "")
-        self._add_entry("Scale", "textscale", str(item.textscale) if item.textscale is not None else "")
-        self._add_combo("Align", "textalign", TEXT_ALIGNS, item.textalign)
-        self._add_entry("Align X", "textalignx", str(item.textalignx) if item.textalignx is not None else "")
-        self._add_entry("Align Y", "textaligny", str(item.textaligny) if item.textaligny is not None else "")
-        self._add_combo("Style", "textstyle", TEXT_STYLES, item.textstyle)
+        self._add_section(tab, "Position & Size")
+        self._add_entry(tab, "X", "rect_x", str(int(item.rect.x)))
+        self._add_entry(tab, "Y", "rect_y", str(int(item.rect.y)))
+        self._add_entry(tab, "W", "rect_w", str(int(item.rect.w)))
+        self._add_entry(tab, "H", "rect_h", str(int(item.rect.h)))
 
-        self._add_section("Appearance")
-        self._add_combo("Win Style", "style", WINDOW_STYLES, item.style)
-        self._add_color("Forecolor", "forecolor", item.forecolor)
-        self._add_color("Backcolor", "backcolor", item.backcolor)
-        self._add_color("Border", "bordercolor", item.bordercolor)
-        self._add_entry("Background", "background", item.background or "")
+        self._add_section(tab, "Flags")
+        self._add_checkbox(tab, "Visible", "visible", item.visible)
+        self._add_checkbox(tab, "Decoration", "decoration", item.decoration)
+        self._add_checkbox(tab, "Autowrapped", "autowrapped", item.autowrapped)
 
-        self._add_section("Flags")
-        self._add_checkbox("Visible", "visible", item.visible)
-        self._add_checkbox("Decoration", "decoration", item.decoration)
-        self._add_checkbox("Autowrapped", "autowrapped", item.autowrapped)
+        # --- Style ---
+        tab = self._make_tab("Style")
 
-        self._add_section("Behavior")
-        self._add_entry("Dvar", "dvar", item.dvar or "")
-        self._add_entry("Dvar Test", "dvar_test", item.dvar_test or "")
-        self._add_entry("Show Dvar", "show_dvar", "; ".join(item.show_dvar) if item.show_dvar else "")
-        self._add_entry("Hide Dvar", "hide_dvar", "; ".join(item.hide_dvar) if item.hide_dvar else "")
+        self._add_section(tab, "Window")
+        self._add_combo(tab, "Style", "style", WINDOW_STYLES, item.style)
+        self._add_entry(tab, "Background", "background", item.background or "")
 
-        self._add_section("Events")
-        self._add_entry("Action", "action", item.action or "")
-        self._add_entry("On Focus", "on_focus", item.on_focus or "")
-        self._add_entry("Mouse Enter", "mouse_enter", item.mouse_enter or "")
-        self._add_entry("Mouse Exit", "mouse_exit", item.mouse_exit or "")
+        self._add_section(tab, "Colors")
+        self._add_color(tab, "Forecolor", "forecolor", item.forecolor)
+        self._add_color(tab, "Backcolor", "backcolor", item.backcolor)
+        self._add_color(tab, "Border", "bordercolor", item.bordercolor)
+
+        # --- Text ---
+        tab = self._make_tab("Text")
+
+        self._add_section(tab, "Content")
+        self._add_entry(tab, "Text", "text", item.text or "")
+        self._add_entry(tab, "Scale", "textscale", str(item.textscale) if item.textscale is not None else "")
+
+        self._add_section(tab, "Alignment")
+        self._add_combo(tab, "Align", "textalign", TEXT_ALIGNS, item.textalign)
+        self._add_entry(tab, "Align X", "textalignx", str(item.textalignx) if item.textalignx is not None else "")
+        self._add_entry(tab, "Align Y", "textaligny", str(item.textaligny) if item.textaligny is not None else "")
+
+        self._add_section(tab, "Rendering")
+        self._add_combo(tab, "Text Style", "textstyle", TEXT_STYLES, item.textstyle)
+
+        # --- Events ---
+        tab = self._make_tab("Events")
+
+        self._add_section(tab, "Handlers")
+        self._add_entry(tab, "Action", "action", item.action or "")
+        self._add_entry(tab, "On Focus", "on_focus", item.on_focus or "")
+        self._add_entry(tab, "Mouse Enter", "mouse_enter", item.mouse_enter or "")
+        self._add_entry(tab, "Mouse Exit", "mouse_exit", item.mouse_exit or "")
+
+        self._add_section(tab, "Dvar Binding")
+        self._add_entry(tab, "Dvar", "dvar", item.dvar or "")
+        self._add_entry(tab, "Dvar Test", "dvar_test", item.dvar_test or "")
+        self._add_entry(tab, "Show Dvar", "show_dvar", "; ".join(item.show_dvar) if item.show_dvar else "")
+        self._add_entry(tab, "Hide Dvar", "hide_dvar", "; ".join(item.hide_dvar) if item.hide_dvar else "")
 
     # ------------------------------------------------------------------
-    # Menu properties
+    # Menu properties — 3 tabs
     # ------------------------------------------------------------------
 
     def _build_menu_props(self):
         menu = self.menu
 
-        self._add_section("Menu Properties")
-        self._add_entry("Name", "menu_name", menu.name)
-        self._add_entry("Rect X", "menu_rect_x", str(int(menu.rect.x)))
-        self._add_entry("Rect Y", "menu_rect_y", str(int(menu.rect.y)))
-        self._add_entry("Rect W", "menu_rect_w", str(int(menu.rect.w)))
-        self._add_entry("Rect H", "menu_rect_h", str(int(menu.rect.h)))
+        # --- General ---
+        tab = self._make_tab("General")
 
-        self._add_section("Appearance")
-        self._add_color("Focus Color", "menu_focuscolor", menu.focuscolor)
-        self._add_color("Forecolor", "menu_forecolor", menu.forecolor)
-        self._add_color("Backcolor", "menu_backcolor", menu.backcolor)
-        self._add_entry("Blur World", "menu_blur_world", str(menu.blur_world) if menu.blur_world is not None else "")
-        self._add_entry("Sound Loop", "menu_sound_loop", menu.sound_loop or "")
+        self._add_section(tab, "Identity")
+        self._add_entry(tab, "Name", "menu_name", menu.name)
 
-        self._add_section("Flags")
-        self._add_checkbox("Visible", "menu_visible", menu.visible)
-        self._add_checkbox("Fullscreen", "menu_fullscreen", menu.fullscreen)
-        self._add_checkbox("Popup", "menu_popup", menu.popup)
+        self._add_section(tab, "Position & Size")
+        self._add_entry(tab, "X", "menu_rect_x", str(int(menu.rect.x)))
+        self._add_entry(tab, "Y", "menu_rect_y", str(int(menu.rect.y)))
+        self._add_entry(tab, "W", "menu_rect_w", str(int(menu.rect.w)))
+        self._add_entry(tab, "H", "menu_rect_h", str(int(menu.rect.h)))
 
-        self._add_section("Events")
-        self._add_entry("On Open", "menu_on_open", menu.on_open or "")
-        self._add_entry("On Close", "menu_on_close", menu.on_close or "")
-        self._add_entry("On ESC", "menu_on_esc", menu.on_esc or "")
+        self._add_section(tab, "Flags")
+        self._add_checkbox(tab, "Visible", "menu_visible", menu.visible)
+        self._add_checkbox(tab, "Fullscreen", "menu_fullscreen", menu.fullscreen)
+        self._add_checkbox(tab, "Popup", "menu_popup", menu.popup)
+
+        # --- Style ---
+        tab = self._make_tab("Style")
+
+        self._add_section(tab, "Colors")
+        self._add_color(tab, "Focus Color", "menu_focuscolor", menu.focuscolor)
+        self._add_color(tab, "Forecolor", "menu_forecolor", menu.forecolor)
+        self._add_color(tab, "Backcolor", "menu_backcolor", menu.backcolor)
+
+        self._add_section(tab, "Effects")
+        self._add_entry(tab, "Blur World", "menu_blur_world", str(menu.blur_world) if menu.blur_world is not None else "")
+        self._add_entry(tab, "Sound Loop", "menu_sound_loop", menu.sound_loop or "")
+
+        # --- Events ---
+        tab = self._make_tab("Events")
+
+        self._add_section(tab, "Handlers")
+        self._add_entry(tab, "On Open", "menu_on_open", menu.on_open or "")
+        self._add_entry(tab, "On Close", "menu_on_close", menu.on_close or "")
+        self._add_entry(tab, "On ESC", "menu_on_esc", menu.on_esc or "")
 
     # ------------------------------------------------------------------
     # Apply changes
@@ -337,13 +385,22 @@ class PropertiesPanel(Frame):
     def _apply_item_changes(self):
         item = self.item
         item.name = self._get_str("name")
-        # item.type is read-only — set at creation time
         item.group = self._get_str_or_none("group")
 
         item.rect.x = self._get_float("rect_x")
         item.rect.y = self._get_float("rect_y")
         item.rect.w = self._get_float("rect_w")
         item.rect.h = self._get_float("rect_h")
+
+        item.visible = self._get_bool("visible")
+        item.decoration = self._get_bool("decoration")
+        item.autowrapped = self._get_bool("autowrapped")
+
+        item.style = self._get_combo_int("style", WINDOW_STYLES)
+        item.forecolor = self._get_color("forecolor")
+        item.backcolor = self._get_color("backcolor")
+        item.bordercolor = self._get_color("bordercolor")
+        item.background = self._get_str_or_none("background")
 
         item.text = self._get_str_or_none("text")
         item.textscale = self._get_float_or_none("textscale")
@@ -352,15 +409,10 @@ class PropertiesPanel(Frame):
         item.textaligny = self._get_int("textaligny") if self._get_str("textaligny") else None
         item.textstyle = self._get_combo_int("textstyle", TEXT_STYLES)
 
-        item.style = self._get_combo_int("style", WINDOW_STYLES)
-        item.forecolor = self._get_color("forecolor")
-        item.backcolor = self._get_color("backcolor")
-        item.bordercolor = self._get_color("bordercolor")
-        item.background = self._get_str_or_none("background")
-
-        item.visible = self._get_bool("visible")
-        item.decoration = self._get_bool("decoration")
-        item.autowrapped = self._get_bool("autowrapped")
+        item.action = self._get_str_or_none("action")
+        item.on_focus = self._get_str_or_none("on_focus")
+        item.mouse_enter = self._get_str_or_none("mouse_enter")
+        item.mouse_exit = self._get_str_or_none("mouse_exit")
 
         item.dvar = self._get_str_or_none("dvar")
         item.dvar_test = self._get_str_or_none("dvar_test")
@@ -368,11 +420,6 @@ class PropertiesPanel(Frame):
         item.show_dvar = [v.strip().strip('"') for v in show.split(";")] if show.strip() else []
         hide = self._get_str("hide_dvar")
         item.hide_dvar = [v.strip().strip('"') for v in hide.split(";")] if hide.strip() else []
-
-        item.action = self._get_str_or_none("action")
-        item.on_focus = self._get_str_or_none("on_focus")
-        item.mouse_enter = self._get_str_or_none("mouse_enter")
-        item.mouse_exit = self._get_str_or_none("mouse_exit")
 
     def _apply_menu_changes(self):
         menu = self.menu
@@ -382,16 +429,16 @@ class PropertiesPanel(Frame):
         menu.rect.w = self._get_float("menu_rect_w")
         menu.rect.h = self._get_float("menu_rect_h")
 
+        menu.visible = self._get_bool("menu_visible")
+        menu.fullscreen = self._get_bool("menu_fullscreen")
+        menu.popup = self._get_bool("menu_popup")
+
         menu.focuscolor = self._get_color("menu_focuscolor")
         menu.forecolor = self._get_color("menu_forecolor")
         menu.backcolor = self._get_color("menu_backcolor")
         blur = self._get_str("menu_blur_world")
         menu.blur_world = float(blur) if blur else None
         menu.sound_loop = self._get_str_or_none("menu_sound_loop")
-
-        menu.visible = self._get_bool("menu_visible")
-        menu.fullscreen = self._get_bool("menu_fullscreen")
-        menu.popup = self._get_bool("menu_popup")
 
         menu.on_open = self._get_str_or_none("menu_on_open")
         menu.on_close = self._get_str_or_none("menu_on_close")
