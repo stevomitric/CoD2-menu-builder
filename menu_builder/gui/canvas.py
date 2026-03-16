@@ -231,10 +231,6 @@ class MenuCanvas(Frame):
 
         self._item_ids[rect_id] = item
 
-        # Decoration indicator
-        if item.decoration:
-            self.canvas.create_line(x0, y0, x0 + 8 * self._scale, y0, fill="#888888", width=2)
-
         # Type badge (top-left)
         badge_color = "#556677" if hidden else type_outline
         self.canvas.create_text(
@@ -243,10 +239,15 @@ class MenuCanvas(Frame):
             anchor=tk.NW,
         )
 
-        # Hidden indicator (top-right)
+        # Status badges (top-right) — D=decoration, H=hidden
+        badges = ""
+        if item.decoration:
+            badges += "D"
         if hidden:
+            badges += "H"
+        if badges:
             self.canvas.create_text(
-                x1 - 3, y0 + 2, text="H", fill="#886644",
+                x1 - 3, y0 + 2, text=badges, fill="#886644",
                 font=("TkDefaultFont", max(6, int(7 * self._scale)), "bold"),
                 anchor=tk.NE,
             )
