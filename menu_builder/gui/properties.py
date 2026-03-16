@@ -75,9 +75,23 @@ class PropertiesPanel(Frame):
     # ------------------------------------------------------------------
 
     def load(self, item: ItemDef | None, menu: MenuDef | None):
+        """Full rebuild — call when the selected item/menu changes."""
         self.item = item
         self.menu = menu
         self._rebuild()
+
+    def sync_from_model(self):
+        """Update displayed values from the current model without rebuilding.
+
+        Call this when the model changed externally (drag, resize) but the
+        same item is still selected — avoids tab flicker.
+        """
+        self._suppress_events = True
+        if self.item is not None:
+            self._sync_item_values()
+        elif self.menu is not None:
+            self._sync_menu_values()
+        self._suppress_events = False
 
     # ------------------------------------------------------------------
     # Build UI
@@ -443,3 +457,65 @@ class PropertiesPanel(Frame):
         menu.on_open = self._get_str_or_none("menu_on_open")
         menu.on_close = self._get_str_or_none("menu_on_close")
         menu.on_esc = self._get_str_or_none("menu_on_esc")
+
+    # ------------------------------------------------------------------
+    # Sync values from model (no rebuild)
+    # ------------------------------------------------------------------
+
+    def _set_var(self, key: str, value: str):
+        """Set a var's value if it exists, without triggering _on_change."""
+        var = self._vars.get(key)
+        if var is not None:
+            var.set(value)
+
+    def _set_color_vars(self, key: str, color: Color | None):
+        c = color or Color(0, 0, 0, 0)
+        self._set_var(f"{key}_r", f"{c.r:.2f}")
+        self._set_var(f"{key}_g", f"{c.g:.2f}")
+        self._set_var(f"{key}_b", f"{c.b:.2f}")
+        self._set_var(f"{key}_a", f"{c.a:.2f}")
+
+    def _sync_item_values(self):
+        item = self.item
+        if item is None:
+            return
+        self._set_var("name", item.name)
+        self._set_var("group", item.group or "")
+        self._set_var("rect_x", str(int(item.rect.x)))
+        self._set_var("rect_y", str(int(item.rect.y)))
+        self._set_var("rect_w", str(int(item.rect.w)))
+        self._set_var("rect_h", str(int(item.rect.h)))
+        self._set_var("text", item.text or "")
+        self._set_var("textscale", str(item.textscale) if item.textscale is not None else "")
+        self._set_var("textalignx", str(item.textalignx) if item.textalignx is not None else "")
+        self._set_var("textaligny", str(item.textaligny) if item.textaligny is not None else "")
+        self._set_var("background", item.background or "")
+        self._set_color_vars("forecolor", item.forecolor)
+        self._set_color_vars("backcolor", item.backcolor)
+        self._set_color_vars("bordercolor", item.bordercolor)
+        self._set_var("dvar", item.dvar or "")
+        self._set_var("dvar_test", item.dvar_test or "")
+        self._set_var("show_dvar", "; ".join(item.show_dvar) if item.show_dvar else "")
+        self._set_var("hide_dvar", "; ".join(item.hide_dvar) if item.hide_dvar else "")
+        self._set_var("action", item.action or "")
+        self._set_var("on_focus", item.on_focus or "")
+        self._set_var("mouse_enter", item.mouse_enter or "")
+        self._set_var("mouse_exit", item.mouse_exit or "")
+
+    def _sync_menu_values(self):
+        menu = self.menu
+        if menu is None:
+            return
+        self._set_var("menu_name", menu.name)
+        self._set_var("menu_rect_x", str(int(menu.rect.x)))
+        self._set_var("menu_rect_y", str(int(menu.rect.y)))
+        self._set_var("menu_rect_w", str(int(menu.rect.w)))
+        self._set_var("menu_rect_h", str(int(menu.rect.h)))
+        self._set_var("menu_blur_world", str(menu.blur_world) if menu.blur_world is not None else "")
+        self._set_var("menu_sound_loop", menu.sound_loop or "")
+        self._set_color_vars("menu_focuscolor", menu.focuscolor)
+        self._set_color_vars("menu_forecolor", menu.forecolor)
+        self._set_color_vars("menu_backcolor", menu.backcolor)
+        self._set_var("menu_on_open", menu.on_open or "")
+        self._set_var("menu_on_close", menu.on_close or "")
+        self._set_var("menu_on_esc", menu.on_esc or "")

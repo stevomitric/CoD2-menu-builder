@@ -174,6 +174,22 @@ class MenuTree(Frame):
                 self.tree.see(node_id)
         self._suppress_select = False
 
+    def update_labels(self):
+        """Update tree node labels from the model without rebuilding."""
+        if not self.menu_file or not self.menu_file.menu_defs:
+            return
+        # Update menu labels
+        for node, idx in self._node_to_menu_index.items():
+            menu = self.menu_file.menu_defs[idx]
+            self.tree.item(node, text=f"menuDef: {menu.name or '(unnamed)'}")
+        # Update item labels
+        for node, item in self._node_to_item.items():
+            type_name = _TYPE_INFO.get(item.type, _TYPE_INFO[None])[0]
+            label = item.name or "(unnamed)"
+            if type_name:
+                label += f"  [{type_name}]"
+            self.tree.item(node, text=label)
+
     # ------------------------------------------------------------------
     # Events
     # ------------------------------------------------------------------

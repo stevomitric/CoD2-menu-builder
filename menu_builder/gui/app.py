@@ -392,14 +392,14 @@ class App(tk.Tk):
     def _on_item_moved(self, item: ItemDef, x: float, y: float):
         item.rect.x = x
         item.rect.y = y
-        self.properties.load(item, self._current_menu())
+        self.properties.sync_from_model()
         self._refresh_code()
         self._set_status(f"{item.name}: moved to ({int(x)}, {int(y)})")
 
     def _on_item_resized(self, item: ItemDef, w: float, h: float):
         item.rect.w = w
         item.rect.h = h
-        self.properties.load(item, self._current_menu())
+        self.properties.sync_from_model()
         self._refresh_code()
         self._set_status(f"{item.name}: resized to {int(w)}x{int(h)}")
 
@@ -420,7 +420,7 @@ class App(tk.Tk):
 
     def _on_property_changed(self):
         self._refresh_canvas()
-        self._refresh_tree()
+        self._refresh_tree_labels()
         self._refresh_code()
 
     def _on_tab_changed(self, event):
@@ -446,6 +446,9 @@ class App(tk.Tk):
 
     def _refresh_tree(self):
         self.tree.load(self.menu_file, self.current_menu_index, self.selected_item)
+
+    def _refresh_tree_labels(self):
+        self.tree.update_labels()
 
     def _refresh_canvas(self):
         self.canvas.load(self._current_menu(), self.selected_item)
