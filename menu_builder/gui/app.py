@@ -23,7 +23,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("CoD2 Menu Builder")
-        self.geometry("1024x600")
+        self.geometry("1024x650")
         self.minsize(1024, 600)
 
         # --- Theme ---
@@ -104,8 +104,8 @@ class App(tk.Tk):
 
         # --- Status Bar ---
         self.status_var = tk.StringVar(value="Ready")
-        Label(self, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W).pack(
-            fill=tk.X, side=tk.BOTTOM, padx=4, pady=2
+        Label(self, textvariable=self.status_var, anchor=tk.W, foreground="#888888").pack(
+            fill=tk.X, side=tk.BOTTOM, padx=8, pady=(0, 4)
         )
 
         # --- Initial state ---
