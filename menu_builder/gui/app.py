@@ -96,9 +96,9 @@ class App(tk.Tk):
         # Update code when switching to code tab
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
-        # Right: tree + properties (vertical split)
-        right_pane = PanedWindow(self.main_pane, orient=tk.VERTICAL)
-        self.main_pane.add(right_pane, weight=1)
+        # Right: tree + properties (vertical split) — narrower, fixed initial width
+        right_pane = PanedWindow(self.main_pane, orient=tk.VERTICAL, width=280)
+        self.main_pane.add(right_pane, weight=0)
 
         tree_frame = LabelFrame(right_pane, text="Menu Structure")
         right_pane.add(tree_frame, weight=1)

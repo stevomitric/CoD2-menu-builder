@@ -120,38 +120,10 @@ class PropertiesPanel(Frame):
         self._suppress_events = False
 
     def _make_tab(self, title: str) -> Frame:
-        """Create a scrollable tab and return its content frame."""
-        outer = Frame(self.notebook)
-        self.notebook.add(outer, text=f"  {title}  ")
-
-        canvas = tk.Canvas(outer, highlightthickness=0, borderwidth=0)
-        scrollbar = Scrollbar(outer, orient=tk.VERTICAL, command=canvas.yview)
-        inner = Frame(canvas)
-        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=inner, anchor=tk.NW)
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Mouse wheel
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        def _bind_wheel(event):
-            canvas.bind_all("<MouseWheel>", _on_mousewheel)
-            canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-3, "units"))
-            canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(3, "units"))
-
-        def _unbind_wheel(event):
-            canvas.unbind_all("<MouseWheel>")
-            canvas.unbind_all("<Button-4>")
-            canvas.unbind_all("<Button-5>")
-
-        outer.bind("<Enter>", _bind_wheel)
-        outer.bind("<Leave>", _unbind_wheel)
-
-        return inner
+        """Create a tab and return its content frame."""
+        frame = Frame(self.notebook, padding=4)
+        self.notebook.add(frame, text=f"  {title}  ")
+        return frame
 
     # ------------------------------------------------------------------
     # Widget helpers — all take a parent frame
