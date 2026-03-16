@@ -44,6 +44,15 @@ TEXT_STYLES = [
 ]
 
 
+_TYPE_DISPLAY = {t: n for t, n in ITEM_TYPES}
+
+
+def _type_display_name(type_id: int | None) -> str:
+    if type_id is None:
+        return "(none)"
+    return _TYPE_DISPLAY.get(type_id, str(type_id))
+
+
 class PropertiesPanel(Frame):
     """Editable properties for the selected item or menu."""
 
@@ -111,6 +120,14 @@ class PropertiesPanel(Frame):
         sep = Separator(self.scroll_frame, orient=tk.HORIZONTAL)
         sep.pack(fill=tk.X, padx=5, pady=2)
         self._widgets.append(sep)
+
+    def _add_readonly(self, label: str, value: str):
+        frame = Frame(self.scroll_frame)
+        frame.pack(fill=tk.X, padx=5, pady=1)
+        self._widgets.append(frame)
+
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        Label(frame, text=value, foreground="#666666").pack(side=tk.LEFT)
 
     def _add_entry(self, label: str, key: str, value: str) -> tk.StringVar:
         frame = Frame(self.scroll_frame)
@@ -180,7 +197,7 @@ class PropertiesPanel(Frame):
 
         self._add_section("Identity")
         self._add_entry("Name", "name", item.name)
-        self._add_combo("Type", "type", ITEM_TYPES, item.type)
+        self._add_readonly("Type", _type_display_name(item.type))
         self._add_entry("Group", "group", item.group or "")
 
         self._add_section("Position & Size")
@@ -320,7 +337,7 @@ class PropertiesPanel(Frame):
     def _apply_item_changes(self):
         item = self.item
         item.name = self._get_str("name")
-        item.type = self._get_combo_int("type", ITEM_TYPES)
+        # item.type is read-only — set at creation time
         item.group = self._get_str_or_none("group")
 
         item.rect.x = self._get_float("rect_x")

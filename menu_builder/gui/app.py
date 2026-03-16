@@ -17,6 +17,23 @@ from menu_builder.gui.properties import PropertiesPanel
 from menu_builder.gui.code_preview import CodePreview
 
 
+# Item types available in the Add Item menu
+_ADD_ITEM_TYPES = [
+    (1,  "Button"),
+    (0,  "Text"),
+    (4,  "Edit Field"),
+    (6,  "Listbox"),
+    (9,  "Numeric Field"),
+    (10, "Slider"),
+    (11, "Yes/No"),
+    (12, "Multi"),
+    (14, "Key Bind"),
+]
+
+# Display names for status messages
+_TYPE_DISPLAY = {t: n for t, n in _ADD_ITEM_TYPES}
+
+
 class App(tk.Tk):
     """Main application window."""
 
@@ -132,7 +149,15 @@ class App(tk.Tk):
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Add Menu", command=self._add_menu)
-        edit_menu.add_command(label="Add Item", command=self._add_item, accelerator="Ctrl+I")
+
+        # Add Item submenu — pick item type
+        add_item_menu = tk.Menu(edit_menu, tearoff=0)
+        edit_menu.add_cascade(label="Add Item", menu=add_item_menu)
+        for type_id, type_name in _ADD_ITEM_TYPES:
+            add_item_menu.add_command(
+                label=type_name,
+                command=lambda t=type_id: self._add_item(t),
+            )
         edit_menu.add_separator()
         edit_menu.add_command(label="Copy", command=self._copy_selected, accelerator="Ctrl+C")
         edit_menu.add_command(label="Paste", command=self._paste_item, accelerator="Ctrl+V")
@@ -273,23 +298,24 @@ class App(tk.Tk):
         self._refresh_all()
         self._set_status(f"Deleted menu: {name}")
 
-    def _add_item(self):
+    def _add_item(self, item_type: int = 1):
         if not self.menu_file.menu_defs:
             return
         menu = self.menu_file.menu_defs[self.current_menu_index]
         idx = len(menu.items) + 1
+        type_name = _TYPE_DISPLAY.get(item_type, "item").lower()
         item = ItemDef(
-            name=f"item_{idx}",
+            name=f"{type_name}_{idx}",
             rect=Rect(10, 10 + (idx - 1) * 35, 200, 30),
-            type=1,
-            text=f"Item {idx}",
+            type=item_type,
+            text=f"{_TYPE_DISPLAY.get(item_type, 'Item')} {idx}",
             forecolor=Color(1, 1, 1, 1),
             visible=True,
         )
         menu.items.append(item)
         self.selected_item = item
         self._refresh_all()
-        self._set_status(f"Added item: {item.name}")
+        self._set_status(f"Added {_TYPE_DISPLAY.get(item_type, 'item')}: {item.name}")
 
     def _delete_selected(self):
         if self.selected_item is None:

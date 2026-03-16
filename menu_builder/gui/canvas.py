@@ -39,6 +39,19 @@ _TYPE_STYLES: dict[int | None, tuple[str, str]] = {
     None: ("?", "#666666"),
 }
 
+# Item types for the Add Item context menu
+_ADD_ITEM_TYPES = [
+    (1,  "Button"),
+    (0,  "Text"),
+    (4,  "Edit Field"),
+    (6,  "Listbox"),
+    (9,  "Numeric Field"),
+    (10, "Slider"),
+    (11, "Yes/No"),
+    (12, "Multi"),
+    (14, "Key Bind"),
+]
+
 
 def _color_to_hex(c: Color | None, fallback: str = "#333333") -> str:
     """Convert a Color to a Tk hex string."""
@@ -67,7 +80,7 @@ class MenuCanvas(Frame):
         on_select: Callable[[ItemDef | None], None] | None = None,
         on_item_moved: Callable[[ItemDef, float, float], None] | None = None,
         on_item_resized: Callable[[ItemDef, float, float], None] | None = None,
-        on_request_add: Callable[[], None] | None = None,
+        on_request_add: Callable[[int], None] | None = None,
         on_request_delete: Callable[[], None] | None = None,
         on_request_duplicate: Callable[[], None] | None = None,
         on_request_bring_front: Callable[[], None] | None = None,
@@ -370,7 +383,16 @@ class MenuCanvas(Frame):
 
         # tk.Menu — no ttk equivalent
         ctx = tk.Menu(self, tearoff=0)
-        ctx.add_command(label="Add Item", command=self._ctx_add)
+
+        # Add Item submenu
+        add_menu = tk.Menu(ctx, tearoff=0)
+        ctx.add_cascade(label="Add Item", menu=add_menu)
+        for type_id, type_name in _ADD_ITEM_TYPES:
+            add_menu.add_command(
+                label=type_name,
+                command=lambda t=type_id: self._ctx_add(t),
+            )
+
         if self.selected_item is not None:
             ctx.add_command(label="Duplicate", command=self._ctx_duplicate)
             ctx.add_separator()
@@ -380,9 +402,9 @@ class MenuCanvas(Frame):
             ctx.add_command(label="Delete", command=self._ctx_delete)
         ctx.tk_popup(event.x_root, event.y_root)
 
-    def _ctx_add(self):
+    def _ctx_add(self, item_type: int = 1):
         if self.on_request_add:
-            self.on_request_add()
+            self.on_request_add(item_type)
 
     def _ctx_delete(self):
         if self.on_request_delete:
