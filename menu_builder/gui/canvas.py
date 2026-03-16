@@ -209,6 +209,7 @@ class MenuCanvas(Frame):
         r = item.rect
         x0, y0 = self._to_screen(r.x, r.y)
         x1, y1 = self._to_screen(r.x + r.w, r.y + r.h)
+        hidden = not item.visible
 
         type_style = _TYPE_STYLES.get(item.type, _TYPE_STYLES[None])
         type_badge, type_outline = type_style
@@ -216,8 +217,14 @@ class MenuCanvas(Frame):
         fill = _color_to_hex(item.backcolor, "#333333")
         outline = _color_to_hex(item.bordercolor, type_outline)
 
+        # Hidden items: dashed outline, stippled fill, dimmed colors
         is_filled = item.style == 1 or item.backcolor is not None
-        if is_filled:
+        if hidden:
+            rect_id = self.canvas.create_rectangle(
+                x0, y0, x1, y1, fill=fill if is_filled else "",
+                outline="#556677", dash=(4, 4), stipple="gray25" if is_filled else "",
+            )
+        elif is_filled:
             rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=outline)
         else:
             rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill="", outline="#7ab0d4", dash=(3, 2))
@@ -229,18 +236,27 @@ class MenuCanvas(Frame):
             self.canvas.create_line(x0, y0, x0 + 8 * self._scale, y0, fill="#888888", width=2)
 
         # Type badge (top-left)
+        badge_color = "#556677" if hidden else type_outline
         self.canvas.create_text(
-            x0 + 3, y0 + 2, text=type_badge, fill=type_outline,
+            x0 + 3, y0 + 2, text=type_badge, fill=badge_color,
             font=("TkDefaultFont", max(6, int(7 * self._scale)), "bold"),
             anchor=tk.NW,
         )
+
+        # Hidden indicator (top-right)
+        if hidden:
+            self.canvas.create_text(
+                x1 - 3, y0 + 2, text="H", fill="#886644",
+                font=("TkDefaultFont", max(6, int(7 * self._scale)), "bold"),
+                anchor=tk.NE,
+            )
 
         # Text label
         if item.text or item.name:
             label = item.text or item.name
             if label.startswith("@"):
                 label = label[1:]
-            tc = _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
+            tc = "#556677" if hidden else _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
             cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
             font_size = max(8, int(10 * self._scale))
             text_id = self.canvas.create_text(

@@ -64,7 +64,7 @@ class App(tk.Tk):
 
         # Left: Editor LabelFrame containing Notebook
         editor_frame = LabelFrame(self.main_pane, text="Editor")
-        self.main_pane.add(editor_frame, weight=3)
+        self.main_pane.add(editor_frame, weight=4)
 
         self.notebook = Notebook(editor_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
