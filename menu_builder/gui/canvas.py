@@ -215,11 +215,12 @@ class MenuCanvas(Frame):
         type_style = _TYPE_STYLES.get(item.type, _TYPE_STYLES[None])
         type_badge, type_outline = type_style
 
-        fill = _color_to_hex(item.backcolor, "#333333")
         outline = _color_to_hex(item.bordercolor, type_outline)
 
-        # Hidden items: dashed outline, stippled fill, dimmed colors
-        is_filled = item.style == 1 or item.backcolor is not None
+        # Only FILLED (1) renders backcolor; EMPTY/SHADER/DVAR_SHADER render as empty
+        is_filled = item.style == 1
+        fill = _color_to_hex(item.backcolor, "#333333") if is_filled else ""
+
         if hidden:
             rect_id = self.canvas.create_rectangle(
                 x0, y0, x1, y1, fill=fill if is_filled else "",
