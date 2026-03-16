@@ -18,7 +18,7 @@ from menu_builder.serializer import serialize
 # Helpers
 # ---------------------------------------------------------------------------
 
-SAMPLE_DIR = Path(__file__).parent.parent / "ui_mp" / "ui_mp"
+SAMPLE_DIR = Path(__file__).parent.parent / "ui_mp"
 
 
 def _compare_color(a: Color | None, b: Color | None, context: str) -> list[str]:
