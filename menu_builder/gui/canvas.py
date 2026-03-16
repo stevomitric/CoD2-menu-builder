@@ -252,9 +252,11 @@ class MenuCanvas(Frame):
                 anchor=tk.NE,
             )
 
-        # Display name
-        if item.name:
-            label = item.name
+        # Text label (fall back to name if no text set)
+        if item.text or item.name:
+            label = item.text or item.name
+            if label.startswith("@"):
+                label = label[1:]
             tc = "#556677" if hidden else _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
             cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
             font_size = max(8, int(10 * self._scale))
