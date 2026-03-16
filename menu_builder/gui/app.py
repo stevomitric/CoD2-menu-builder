@@ -104,7 +104,7 @@ class App(tk.Tk):
 
         # --- Status Bar ---
         self.status_var = tk.StringVar(value="Ready")
-        Label(self, textvariable=self.status_var, anchor=tk.W, foreground="#888888").pack(
+        Label(self, textvariable=self.status_var, anchor=tk.W).pack(
             fill=tk.X, side=tk.BOTTOM, padx=8, pady=(0, 4)
         )
 

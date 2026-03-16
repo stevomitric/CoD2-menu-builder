@@ -31,18 +31,20 @@ _TYPE_INFO: dict[int | None, tuple[str, str]] = {
 _MENU_ICON_COLOR = "#5588CC"
 
 
-def _create_icon(root: tk.Misc, color: str, size: int = 12) -> tk.PhotoImage:
-    """Create a small solid-color square icon."""
-    img = tk.PhotoImage(width=size, height=size, master=root)
-    # Fill with color (border 1px darker)
+def _create_icon(root: tk.Misc, color: str, size: int = 12, pad_right: int = 4) -> tk.PhotoImage:
+    """Create a small solid-color square icon with transparent padding."""
+    total_w = size + pad_right
+    img = tk.PhotoImage(width=total_w, height=size, master=root)
+    # Fill square with color
     img.put(color, to=(0, 0, size, size))
-    # Simple 1px border effect — darken edges
+    # 1px border effect — darken edges
     dark = _darken(color)
     for i in range(size):
         img.put(dark, to=(i, 0, i + 1, 1))          # top
         img.put(dark, to=(i, size - 1, i + 1, size))  # bottom
         img.put(dark, to=(0, i, 1, i + 1))            # left
         img.put(dark, to=(size - 1, i, size, i + 1))  # right
+    # Right padding stays transparent
     return img
 
 
