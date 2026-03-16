@@ -23,7 +23,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("CoD2 Menu Builder")
-        self.geometry("1280x800")
+        self.geometry("1024x600")
         self.minsize(1024, 600)
 
         # --- Theme ---
