@@ -240,10 +240,12 @@ class MenuCanvas(Frame):
             anchor=tk.NW,
         )
 
-        # Status badges (top-right) — D=decoration, H=hidden
+        # Status badges (top-right) — D=decoration, W=autowrap, H=hidden
         badges = ""
         if item.decoration:
             badges += "D"
+        if item.autowrapped:
+            badges += "W"
         if hidden:
             badges += "H"
         if badges:
