@@ -716,7 +716,7 @@ def parse(source: str, include_dirs: list[str | Path] | None = None) -> MenuFile
     Fragment files are returned as a MenuFile with no menuDefs.
     """
     include = _extract_include(source)
-    inc_paths = [Path(d) for d in include_dirs] if include_dirs else []
+    inc_paths = [Path(d) for d in include_dirs] if include_dirs else _stock_dirs()
     cleaned = _preprocess(source, inc_paths)
     tokens = _tokenize(cleaned)
     parser = _Parser(tokens)
@@ -767,10 +767,26 @@ def parse_file(path: str | Path, include_dirs: list[str | Path] | None = None) -
     return parse(source, include_dirs)
 
 
+def _stock_dirs() -> list[Path]:
+    """Return search paths for bundled stock menu files.
+
+    The stock ui/ and ui_mp/ directories live at the project root.
+    Since #include paths look like "ui_mp/menudef.h", the search
+    base needs to be the project root (parent of ui_mp/).
+    """
+    pkg_dir = Path(__file__).resolve().parent  # menu_builder/
+    project_root = pkg_dir.parent
+    # The project root is the search base (contains ui_mp/ and ui/)
+    if (project_root / "ui_mp").is_dir() or (project_root / "ui").is_dir():
+        return [project_root]
+    return []
+
+
 def _find_include_dirs(file_path: Path, source: str) -> list[Path]:
     """Auto-detect include search directories by walking up from the file.
 
     Looks for directories where the #include "path" resolves to an actual file.
+    Falls back to bundled stock ui/ and ui_mp/ directories.
     """
     match = re.search(r'#include\s+"([^"]+)"', source)
     if not match:
@@ -795,6 +811,13 @@ def _find_include_dirs(file_path: Path, source: str) -> list[Path]:
         if current.parent == current:
             break
         current = current.parent
+
+    # Fallback: try bundled stock directories
+    if not dirs:
+        for stock_dir in _stock_dirs():
+            if (stock_dir / inc_path).exists():
+                dirs.append(stock_dir)
+                break
 
     if not dirs:
         dirs.append(file_path.parent)
