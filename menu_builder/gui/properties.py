@@ -177,6 +177,13 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
+    def _add_entry_disabled(self, parent: Frame, label: str, value: str):
+        frame = Frame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=1)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        var = tk.StringVar(value=value)
+        Entry(frame, textvariable=var, width=20, state="disabled").pack(side=tk.LEFT, fill=tk.X, expand=True)
+
     def _add_spinbox(self, parent: Frame, label: str, key: str, value: int, from_: int, to: int) -> tk.StringVar:
         frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
@@ -232,7 +239,7 @@ class PropertiesPanel(Frame):
 
         self._add_section(tab, "Window")
         self._add_combo(tab, "Style", "style", WINDOW_STYLES, item.style)
-        self._add_readonly(tab, "Background", item.background or "(shader — not yet supported)")
+        self._add_entry_disabled(tab, "Background", item.background or "")
 
         self._add_section(tab, "Colors")
         self._add_color(tab, "Forecolor", "forecolor", item.forecolor)
