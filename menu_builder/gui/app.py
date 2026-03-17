@@ -438,6 +438,7 @@ class App(tk.Tk):
         current = self.notebook.index(self.notebook.select())
         if current == 1:  # Code tab
             self._refresh_code()
+            self.code_preview.highlight_item(self.selected_item)
 
     # ------------------------------------------------------------------
     # Refresh helpers
