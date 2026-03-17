@@ -391,6 +391,7 @@ class App(tk.Tk):
         self.tree.select_item(item)
         if item is not prev:
             self.properties.load(item, self._current_menu())
+            self._highlight_code_item()
         if item:
             self._set_status(f"Selected: {item.name} ({int(item.rect.x)}, {int(item.rect.y)}) {int(item.rect.w)}x{int(item.rect.h)}")
 
@@ -427,6 +428,7 @@ class App(tk.Tk):
         self.canvas.select_item(item)
         if item is not prev:
             self.properties.load(item, self._current_menu())
+            self._highlight_code_item()
 
     def _on_property_changed(self):
         self._refresh_canvas()
@@ -467,6 +469,15 @@ class App(tk.Tk):
     def _refresh_code(self):
         text = serialize(self.menu_file)
         self.code_preview.set_text(text)
+
+    def _highlight_code_item(self):
+        """Update code preview highlight if the code tab is visible."""
+        try:
+            current = self.notebook.index(self.notebook.select())
+            if current == 1:
+                self.code_preview.highlight_item(self.selected_item)
+        except Exception:
+            pass
 
     def _set_status(self, msg: str):
         self.status_var.set(msg)
