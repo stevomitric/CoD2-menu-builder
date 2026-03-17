@@ -206,10 +206,17 @@ class MenuCanvas(Frame):
             sx1, sy1 = self._to_screen(CANVAS_W, gy)
             self.canvas.create_line(sx0, sy0, sx1, sy1, fill=BP_GRID_MAJOR, width=1)
 
-    def _draw_item(self, item: ItemDef):
+    @staticmethod
+    def _item_bounds(item: ItemDef) -> tuple[float, float, float, float]:
+        """Get item bounds in menu coordinates (rect + origin offset)."""
         r = item.rect
-        x0, y0 = self._to_screen(r.x, r.y)
-        x1, y1 = self._to_screen(r.x + r.w, r.y + r.h)
+        ox, oy = item.origin if item.origin else (0, 0)
+        return r.x + ox, r.y + oy, r.x + ox + r.w, r.y + oy + r.h
+
+    def _draw_item(self, item: ItemDef):
+        ix0, iy0, ix1, iy1 = self._item_bounds(item)
+        x0, y0 = self._to_screen(ix0, iy0)
+        x1, y1 = self._to_screen(ix1, iy1)
         hidden = not item.visible
 
         type_style = _TYPE_STYLES.get(item.type, _TYPE_STYLES[None])
@@ -283,9 +290,9 @@ class MenuCanvas(Frame):
             self._item_ids[text_id] = item
 
     def _draw_selection(self, item: ItemDef):
-        r = item.rect
-        x0, y0 = self._to_screen(r.x, r.y)
-        x1, y1 = self._to_screen(r.x + r.w, r.y + r.h)
+        ix0, iy0, ix1, iy1 = self._item_bounds(item)
+        x0, y0 = self._to_screen(ix0, iy0)
+        x1, y1 = self._to_screen(ix1, iy1)
 
         self.canvas.create_rectangle(
             x0 - 1, y0 - 1, x1 + 1, y1 + 1,
@@ -300,7 +307,7 @@ class MenuCanvas(Frame):
         )
 
         # Position info
-        info = f"({int(r.x)}, {int(r.y)}) {int(r.w)}x{int(r.h)}"
+        info = f"({int(ix0)}, {int(iy0)}) {int(ix1 - ix0)}x{int(iy1 - iy0)}"
         self.canvas.create_text(
             x0, y0 - 4, text=info, fill=SELECT_COLOR,
             font=("TkDefaultFont", max(7, int(8 * self._scale))),
@@ -315,11 +322,10 @@ class MenuCanvas(Frame):
         """Find the top-most item whose bounding box contains (sx, sy)."""
         if self.menu is None:
             return None
-        # Walk items in reverse (last drawn = top-most)
         for item in reversed(self.menu.items):
-            r = item.rect
-            x0, y0 = self._to_screen(r.x, r.y)
-            x1, y1 = self._to_screen(r.x + r.w, r.y + r.h)
+            ix0, iy0, ix1, iy1 = self._item_bounds(item)
+            x0, y0 = self._to_screen(ix0, iy0)
+            x1, y1 = self._to_screen(ix1, iy1)
             if x0 <= sx <= x1 and y0 <= sy <= y1:
                 return item
         return None
@@ -335,15 +341,15 @@ class MenuCanvas(Frame):
 
         # Check resize handle
         if self.selected_item is not None:
-            r = self.selected_item.rect
-            hx, hy = self._to_screen(r.x + r.w, r.y + r.h)
+            _, _, bx1, by1 = self._item_bounds(self.selected_item)
+            hx, hy = self._to_screen(bx1, by1)
             if abs(sx - hx) <= HANDLE_SIZE + 2 and abs(sy - hy) <= HANDLE_SIZE + 2:
                 self._resize_data = {
                     "item": self.selected_item,
                     "start_sx": sx,
                     "start_sy": sy,
-                    "orig_w": r.w,
-                    "orig_h": r.h,
+                    "orig_w": self.selected_item.rect.w,
+                    "orig_h": self.selected_item.rect.h,
                 }
                 return
 
@@ -356,10 +362,11 @@ class MenuCanvas(Frame):
 
         if item is not None:
             mx, my = self._to_menu(sx, sy)
+            bx0, by0, _, _ = self._item_bounds(item)
             self._drag_data = {
                 "item": item,
-                "offset_x": mx - item.rect.x,
-                "offset_y": my - item.rect.y,
+                "offset_x": mx - bx0,
+                "offset_y": my - by0,
             }
 
         self._redraw()
@@ -383,12 +390,14 @@ class MenuCanvas(Frame):
         if self._drag_data:
             item = self._drag_data["item"]
             mx, my = self._to_menu(sx, sy)
-            new_x = mx - self._drag_data["offset_x"]
-            new_y = my - self._drag_data["offset_y"]
-            new_x = round(new_x / GRID_SIZE) * GRID_SIZE
-            new_y = round(new_y / GRID_SIZE) * GRID_SIZE
-            item.rect.x = new_x
-            item.rect.y = new_y
+            new_x = round((mx - self._drag_data["offset_x"]) / GRID_SIZE) * GRID_SIZE
+            new_y = round((my - self._drag_data["offset_y"]) / GRID_SIZE) * GRID_SIZE
+            if item.origin is not None:
+                # Move via origin (rect stays at 0,0)
+                item.origin = (new_x - item.rect.x, new_y - item.rect.y)
+            else:
+                item.rect.x = new_x
+                item.rect.y = new_y
             self._redraw()
 
     def _on_release(self, event):
