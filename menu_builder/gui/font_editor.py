@@ -14,11 +14,6 @@ from menu_builder.tga import TGAImage, load_tga
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _FONTS_DIR = _PROJECT_ROOT / "fonts"
 
-# CoD2 font glyphs are stored at half vertical resolution in the texture.
-# UV coords map directly to pixel positions (s*W, t*H), but the glyph's
-# pixelHeight is ~2x the texture height. The engine stretches vertically.
-_V_STRETCH = 2
-
 
 def _tga_to_photoimage(tga: TGAImage, master: tk.Misc) -> tk.PhotoImage:
     """Convert TGA to PhotoImage at native resolution, alpha on dark bg."""
@@ -37,53 +32,6 @@ def _tga_to_photoimage(tga: TGAImage, master: tk.Misc) -> tk.PhotoImage:
     return img
 
 
-def _extract_glyph_image(
-    tga: TGAImage, glyph: dict, master: tk.Misc, scale: int = 1, color: str = "#ffffff"
-) -> tk.PhotoImage | None:
-    """Extract a single glyph from the atlas, stretched 2x vertically.
-
-    UV maps to actual texture pixels. Output is stretched vertically
-    to match the glyph's pixelHeight (engine does the same).
-    """
-    s0, t0, s1, t1 = glyph["s0"], glyph["t0"], glyph["s1"], glyph["t1"]
-    px0 = int(s0 * tga.width)
-    py0 = int(t0 * tga.height)
-    px1 = int(s1 * tga.width)
-    py1 = int(t1 * tga.height)
-    w = px1 - px0
-    h = py1 - py0
-    if w <= 0 or h <= 0:
-        return None
-
-    cr = int(color[1:3], 16)
-    cg = int(color[3:5], 16)
-    cb = int(color[5:7], 16)
-
-    # Output is stretched vertically by _V_STRETCH to match pixelHeight
-    out_w = w * scale
-    out_h = h * _V_STRETCH * scale
-    img = tk.PhotoImage(width=out_w, height=out_h, master=master)
-    rows = []
-    for ty in range(py0, py1):
-        row = []
-        for tx in range(px0, px1):
-            a = tga.get_alpha(tx, ty)
-            r = int(cr * a / 255)
-            g = int(cg * a / 255)
-            b = int(cb * a / 255)
-            hex_col = f"#{r:02x}{g:02x}{b:02x}"
-            for _ in range(scale):
-                row.append(hex_col)
-        row_str = " ".join(row)
-        # Each texture row appears _V_STRETCH * scale times
-        for _ in range(_V_STRETCH * scale):
-            rows.append(row_str)
-
-    for y, row_data in enumerate(rows):
-        img.put("{" + row_data + "}", to=(0, y))
-    return img
-
-
 class FontEditor(tk.Toplevel):
     """Standalone window for viewing and editing CoD2 font files."""
 
@@ -96,7 +44,6 @@ class FontEditor(tk.Toplevel):
         self._font_data: dict | None = None
         self._tga: TGAImage | None = None
         self._atlas_photo: tk.PhotoImage | None = None
-        self._atlas_scaled: tk.PhotoImage | None = None
         self._glyph_images: dict[tuple, tk.PhotoImage] = {}
         self._selected_glyph: dict | None = None
 
@@ -120,7 +67,8 @@ class FontEditor(tk.Toplevel):
         Label(select_frame, text="Font:").pack(side=tk.LEFT)
 
         stock_fonts = self._list_stock_fonts()
-        self._font_combo_var = tk.StringVar(value=stock_fonts[0] if stock_fonts else "")
+        default_font = "normalFont" if "normalFont" in stock_fonts else (stock_fonts[0] if stock_fonts else "")
+        self._font_combo_var = tk.StringVar(value=default_font)
         self._font_combo = Combobox(
             select_frame, textvariable=self._font_combo_var,
             values=stock_fonts, state="readonly", width=20,
@@ -241,8 +189,8 @@ class FontEditor(tk.Toplevel):
         )
 
         # Load default font
-        if stock_fonts:
-            self._load_stock_font(stock_fonts[0])
+        if default_font:
+            self._load_stock_font(default_font)
 
     # ------------------------------------------------------------------
     # Stock fonts
@@ -375,25 +323,6 @@ class FontEditor(tk.Toplevel):
         self.atlas_canvas.create_image(0, 0, anchor=tk.NW, image=self._atlas_photo)
         self.atlas_canvas.configure(scrollregion=(0, 0, self._tga.width, self._tga.height))
 
-    def _highlight_glyph_on_atlas(self, glyph: dict):
-        self._render_atlas()
-        if self._tga is None:
-            return
-
-        s0, t0, s1, t1 = glyph["s0"], glyph["t0"], glyph["s1"], glyph["t1"]
-        px0 = int(s0 * self._tga.width)
-        py0 = int(t0 * self._tga.height)
-        px1 = int(s1 * self._tga.width)
-        py1 = int(t1 * self._tga.height)
-
-        self.atlas_canvas.create_rectangle(
-            px0 - 1, py0 - 1, px1 + 1, py1 + 1,
-            outline="#ff4444", width=2,
-        )
-
-        # Scroll to show the glyph
-        self.atlas_canvas.yview_moveto(max(0, (py0 - 20)) / self._tga.height)
-
     # ------------------------------------------------------------------
     # Glyph list
     # ------------------------------------------------------------------
@@ -437,33 +366,13 @@ class FontEditor(tk.Toplevel):
                 f"s0={glyph['s0']:.4f}  t0={glyph['t0']:.4f}  "
                 f"s1={glyph['s1']:.4f}  t1={glyph['t1']:.4f}"
             )
-            self._highlight_glyph_on_atlas(glyph)
 
     # ------------------------------------------------------------------
-    # Text preview
+    # Text preview — renders using glyph metrics (no texture sampling)
     # ------------------------------------------------------------------
-
-    def _get_glyph_image(self, letter: int, scale: int = 2) -> tk.PhotoImage | None:
-        cache_key = (letter, scale)
-        if cache_key in self._glyph_images:
-            return self._glyph_images[cache_key]
-        if self._tga is None or self._font_data is None:
-            return None
-
-        glyph = None
-        for g in self._font_data["glyphs"]:
-            if g["letter"] == letter:
-                glyph = g
-                break
-        if glyph is None:
-            return None
-
-        img = _extract_glyph_image(self._tga, glyph, self, scale=scale, color="#ffffff")
-        if img:
-            self._glyph_images[cache_key] = img
-        return img
 
     def _update_preview(self):
+        """Render preview text using glyph metrics."""
         self.preview_canvas.delete("all")
         if not self._font_data:
             return
@@ -476,6 +385,7 @@ class FontEditor(tk.Toplevel):
         glyphs_by_code = {g["letter"]: g for g in self._font_data["glyphs"]}
         px = 10
         py = 50
+        font_height = self._font_data["pixelHeight"]
 
         for ch in text:
             code = ord(ch)
@@ -484,14 +394,23 @@ class FontEditor(tk.Toplevel):
                 px += 8 * scale
                 continue
 
+            w = g["pixelWidth"]
+            h = g["pixelHeight"]
             x0 = g["x0"]
             y0 = g["y0"]
 
-            img = self._get_glyph_image(code, scale)
-            if img:
-                gx = px + x0 * scale
-                gy = py + y0 * scale
-                self.preview_canvas.create_image(gx, gy, anchor=tk.NW, image=img)
+            gx = px + x0 * scale
+            gy = py + y0 * scale
+            if w > 0 and h > 0:
+                self.preview_canvas.create_rectangle(
+                    gx, gy, gx + w * scale, gy + h * scale,
+                    outline="#5588aa", fill="#2a3a4a",
+                )
+                self.preview_canvas.create_text(
+                    gx + w * scale / 2, gy + h * scale / 2, text=ch,
+                    fill="#aaccee", font=("TkDefaultFont", max(7, h * scale - 4)),
+                    anchor=tk.CENTER,
+                )
 
             px += g["dx"] * scale
 
