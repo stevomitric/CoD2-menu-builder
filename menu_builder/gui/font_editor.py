@@ -385,8 +385,6 @@ class FontEditor(tk.Toplevel):
         glyphs_by_code = {g["letter"]: g for g in self._font_data["glyphs"]}
         px = 10
         py = 50
-        font_height = self._font_data["pixelHeight"]
-
         for ch in text:
             code = ord(ch)
             g = glyphs_by_code.get(code)
