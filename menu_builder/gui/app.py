@@ -180,6 +180,11 @@ class App(tk.Tk):
                 command=lambda t=name: self._set_theme(t),
             )
 
+        # Tools
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Font Editor...", command=self._open_font_editor)
+
         # Keybindings
         self.bind_all("<Control-n>", lambda e: self._file_new())
         self.bind_all("<Control-o>", lambda e: self._file_open())
@@ -434,6 +439,10 @@ class App(tk.Tk):
         self._refresh_canvas()
         self._refresh_tree_labels()
         self._refresh_code()
+
+    def _open_font_editor(self):
+        from menu_builder.gui.font_editor import FontEditor
+        FontEditor(self)
 
     def _on_tab_changed(self, event):
         """Refresh code preview when switching to the code tab."""
