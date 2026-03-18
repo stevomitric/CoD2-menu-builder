@@ -2,10 +2,78 @@
 
 from __future__ import annotations
 
+import struct
 import tkinter as tk
 from tkinter.ttk import *  # noqa: F403
 from tkinter import filedialog, messagebox
 from pathlib import Path
+
+from menu_builder.tga import TGAImage, load_tga
+
+# Project root (fonts/ directory lives here)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_FONTS_DIR = _PROJECT_ROOT / "fonts"
+
+
+def _tga_to_photoimage(tga: TGAImage, master: tk.Misc) -> tk.PhotoImage:
+    """Convert a TGA to a tk.PhotoImage, rendering alpha on dark background."""
+    img = tk.PhotoImage(width=tga.width, height=tga.height, master=master)
+    # Build row by row as PPM-style hex color strings
+    rows = []
+    for y in range(tga.height):
+        row = []
+        for x in range(tga.width):
+            a = tga.get_alpha(x, y)
+            # Blend white glyph (alpha) onto dark background
+            bg = 30  # dark grey background
+            v = int(bg + (255 - bg) * a / 255)
+            row.append(f"#{v:02x}{v:02x}{v:02x}")
+        rows.append(" ".join(row))
+    # PhotoImage put accepts row data
+    for y, row_data in enumerate(rows):
+        img.put("{" + row_data + "}", to=(0, y))
+    return img
+
+
+def _extract_glyph_image(
+    tga: TGAImage, glyph: dict, master: tk.Misc, scale: int = 1, color: str = "#ffffff"
+) -> tk.PhotoImage | None:
+    """Extract a single glyph from the atlas as a PhotoImage."""
+    s0, t0, s1, t1 = glyph["s0"], glyph["t0"], glyph["s1"], glyph["t1"]
+    px0 = int(s0 * tga.width)
+    py0 = int(t0 * tga.height)
+    px1 = int(s1 * tga.width)
+    py1 = int(t1 * tga.height)
+    w = px1 - px0
+    h = py1 - py0
+    if w <= 0 or h <= 0:
+        return None
+
+    # Parse target color
+    cr = int(color[1:3], 16)
+    cg = int(color[3:5], 16)
+    cb = int(color[5:7], 16)
+
+    img = tk.PhotoImage(width=w * scale, height=h * scale, master=master)
+    rows = []
+    for y in range(py0, py1):
+        row = []
+        for x in range(px0, px1):
+            a = tga.get_alpha(x, y)
+            # Tint the glyph with the target color, blend on transparent (black) bg
+            r = int(cr * a / 255)
+            g = int(cg * a / 255)
+            b = int(cb * a / 255)
+            hex_col = f"#{r:02x}{g:02x}{b:02x}"
+            for _ in range(scale):
+                row.append(hex_col)
+        row_str = " ".join(row)
+        for _ in range(scale):
+            rows.append(row_str)
+
+    for y, row_data in enumerate(rows):
+        img.put("{" + row_data + "}", to=(0, y))
+    return img
 
 
 class FontEditor(tk.Toplevel):
@@ -17,8 +85,11 @@ class FontEditor(tk.Toplevel):
         self.geometry("900x600")
         self.minsize(800, 500)
 
-        self._font_data: dict | None = None  # Parsed font data
-        self._texture_image: tk.PhotoImage | None = None
+        self._font_data: dict | None = None
+        self._tga: TGAImage | None = None
+        self._atlas_photo: tk.PhotoImage | None = None
+        self._glyph_images: dict[int, tk.PhotoImage] = {}  # letter -> PhotoImage
+        self._selected_glyph: dict | None = None
 
         # --- Menu Bar ---
         menubar = tk.Menu(self)
@@ -34,6 +105,20 @@ class FontEditor(tk.Toplevel):
         file_menu.add_separator()
         file_menu.add_command(label="Close", command=self.destroy)
 
+        # --- Font selector ---
+        select_frame = Frame(self)
+        select_frame.pack(fill=tk.X, padx=8, pady=(4, 0))
+        Label(select_frame, text="Font:").pack(side=tk.LEFT)
+
+        stock_fonts = self._list_stock_fonts()
+        self._font_combo_var = tk.StringVar(value=stock_fonts[0] if stock_fonts else "")
+        self._font_combo = Combobox(
+            select_frame, textvariable=self._font_combo_var,
+            values=stock_fonts, state="readonly", width=20,
+        )
+        self._font_combo.pack(side=tk.LEFT, padx=4)
+        self._font_combo.bind("<<ComboboxSelected>>", self._on_font_combo_changed)
+
         # --- Main Layout ---
         main_pane = PanedWindow(self, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
@@ -42,7 +127,6 @@ class FontEditor(tk.Toplevel):
         left_frame = LabelFrame(main_pane, text="Font")
         main_pane.add(left_frame, weight=1)
 
-        # Font info section
         info_frame = Frame(left_frame)
         info_frame.pack(fill=tk.X, padx=4, pady=4)
 
@@ -57,7 +141,6 @@ class FontEditor(tk.Toplevel):
 
         Separator(left_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=4, pady=4)
 
-        # Glyph list
         Label(left_frame, text="Glyphs", font=("TkDefaultFont", 9, "bold")).pack(
             anchor=tk.W, padx=4
         )
@@ -88,24 +171,22 @@ class FontEditor(tk.Toplevel):
 
         self.glyph_tree.bind("<<TreeviewSelect>>", self._on_glyph_select)
 
-        # Right: Preview area
+        # Right: Atlas + preview
         right_pane = PanedWindow(main_pane, orient=tk.VERTICAL)
         main_pane.add(right_pane, weight=2)
 
-        # Texture atlas preview
+        # Texture atlas
         atlas_frame = LabelFrame(right_pane, text="Texture Atlas")
         right_pane.add(atlas_frame, weight=2)
 
-        self.atlas_canvas = tk.Canvas(
-            atlas_frame, bg="#2a2a2a", highlightthickness=0
-        )
+        self.atlas_canvas = tk.Canvas(atlas_frame, bg="#1e1e1e", highlightthickness=0)
         self.atlas_canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Glyph detail + text preview
+        # Preview
         detail_frame = LabelFrame(right_pane, text="Preview")
         right_pane.add(detail_frame, weight=1)
 
-        # Glyph detail info
+        # Glyph detail
         self._detail_frame = Frame(detail_frame)
         self._detail_frame.pack(fill=tk.X, padx=4, pady=4)
 
@@ -113,22 +194,17 @@ class FontEditor(tk.Toplevel):
         detail_row.pack(fill=tk.X)
         Label(detail_row, text="Selected:").pack(side=tk.LEFT)
         self._detail_var = tk.StringVar(value="No glyph selected")
-        Label(detail_row, textvariable=self._detail_var, foreground="#444444").pack(
-            side=tk.LEFT, padx=8
-        )
+        Label(detail_row, textvariable=self._detail_var, foreground="#444444").pack(side=tk.LEFT, padx=8)
 
-        # UV info
         uv_row = Frame(self._detail_frame)
         uv_row.pack(fill=tk.X)
         Label(uv_row, text="UV:").pack(side=tk.LEFT)
         self._uv_var = tk.StringVar(value="—")
-        Label(uv_row, textvariable=self._uv_var, foreground="#444444").pack(
-            side=tk.LEFT, padx=8
-        )
+        Label(uv_row, textvariable=self._uv_var, foreground="#444444").pack(side=tk.LEFT, padx=8)
 
         Separator(detail_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=4, pady=4)
 
-        # Text preview input
+        # Text preview
         preview_row = Frame(detail_frame)
         preview_row.pack(fill=tk.X, padx=4, pady=2)
         Label(preview_row, text="Preview text:").pack(side=tk.LEFT)
@@ -137,22 +213,44 @@ class FontEditor(tk.Toplevel):
             side=tk.LEFT, fill=tk.X, expand=True, padx=4
         )
 
-        # Text render preview canvas
-        self.preview_canvas = tk.Canvas(
-            detail_frame, bg="#1a1a1a", height=60, highlightthickness=0
-        )
+        self.preview_canvas = tk.Canvas(detail_frame, bg="#1a1a1a", height=80, highlightthickness=0)
         self.preview_canvas.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
         self._preview_text_var.trace_add("write", lambda *_: self._update_preview())
 
         # --- Status Bar ---
-        self._status_var = tk.StringVar(value="Open a font file to begin")
+        self._status_var = tk.StringVar(value="Select a font to begin")
         Label(self, textvariable=self._status_var, anchor=tk.W).pack(
             fill=tk.X, side=tk.BOTTOM, padx=8, pady=(0, 4)
         )
 
-        # Try loading stock fonts on open
-        self._try_load_stock()
+        # Load default font
+        if stock_fonts:
+            self._load_stock_font(stock_fonts[0])
+
+    # ------------------------------------------------------------------
+    # Stock fonts
+    # ------------------------------------------------------------------
+
+    def _list_stock_fonts(self) -> list[str]:
+        """List available stock font names from fonts/ directory."""
+        if not _FONTS_DIR.is_dir():
+            return []
+        # Font files have no extension and are not .tga
+        return sorted(
+            f.name for f in _FONTS_DIR.iterdir()
+            if f.is_file() and not f.name.endswith(".tga")
+        )
+
+    def _load_stock_font(self, name: str):
+        path = _FONTS_DIR / name
+        if path.exists():
+            self._load_font(path)
+
+    def _on_font_combo_changed(self, event):
+        name = self._font_combo_var.get()
+        if name:
+            self._load_stock_font(name)
 
     # ------------------------------------------------------------------
     # File operations
@@ -179,27 +277,15 @@ class FontEditor(tk.Toplevel):
     # Font loading
     # ------------------------------------------------------------------
 
-    def _try_load_stock(self):
-        """Try to load the stock normalFont on startup."""
-        pkg_dir = Path(__file__).resolve().parent.parent
-        project_root = pkg_dir.parent
-        stock = project_root / "fonts" / "normalFont"
-        if stock.exists():
-            self._load_font(stock)
-
     def _load_font(self, path: Path):
-        import struct
-
         try:
             data = path.read_bytes()
             if len(data) < 16:
                 messagebox.showerror("Error", "File too small to be a font file.")
                 return
 
-            # Parse header
             name_offset, pixel_height, num_glyphs, material_offset = struct.unpack_from("<4i", data, 0)
 
-            # Parse glyphs
             glyphs = []
             for i in range(num_glyphs):
                 offset = 16 + i * 24
@@ -213,15 +299,12 @@ class FontEditor(tk.Toplevel):
                 ph = struct.unpack_from("<B", data, offset + 6)[0]
                 s0, t0, s1, t1 = struct.unpack_from("<4f", data, offset + 8)
                 glyphs.append({
-                    "letter": letter,
-                    "x0": x0, "y0": y0, "dx": dx,
+                    "letter": letter, "x0": x0, "y0": y0, "dx": dx,
                     "pixelWidth": pw, "pixelHeight": ph,
                     "s0": s0, "t0": t0, "s1": s1, "t1": t1,
                 })
 
-            # Parse footer strings
-            font_name = ""
-            material_name = ""
+            font_name = material_name = ""
             if name_offset < len(data):
                 end = data.index(b"\x00", name_offset)
                 font_name = data[name_offset:end].decode("ascii", errors="replace")
@@ -238,6 +321,9 @@ class FontEditor(tk.Toplevel):
                 "glyphs": glyphs,
             }
 
+            # Load texture
+            self._load_texture(path.parent, material_name)
+
             # Update UI
             self._info_labels["Name"].set(font_name)
             self._info_labels["Pixel Height"].set(str(pixel_height))
@@ -245,10 +331,66 @@ class FontEditor(tk.Toplevel):
             self._info_labels["Texture"].set(material_name)
 
             self._populate_glyph_list()
+            self._render_atlas()
+            self._update_preview()
             self._status_var.set(f"Loaded: {path.name} ({num_glyphs} glyphs, {pixel_height}px)")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load font: {e}")
+
+    def _load_texture(self, font_dir: Path, material_name: str):
+        """Find and load the TGA texture atlas."""
+        self._tga = None
+        self._atlas_photo = None
+        self._glyph_images.clear()
+
+        # Try: material_name + .tga in the font directory
+        # e.g., "fonts/gamefonts" -> look for "gamefonts.tga"
+        tex_name = material_name.rsplit("/", 1)[-1] if "/" in material_name else material_name
+        candidates = [
+            font_dir / f"{tex_name}.tga",
+            _FONTS_DIR / f"{tex_name}.tga",
+        ]
+        for tga_path in candidates:
+            if tga_path.exists():
+                self._tga = load_tga(tga_path)
+                self._status_var.set(f"Loaded texture: {tga_path.name} ({self._tga.width}x{self._tga.height})")
+                return
+
+    # ------------------------------------------------------------------
+    # Atlas rendering
+    # ------------------------------------------------------------------
+
+    def _render_atlas(self):
+        """Render the texture atlas on the canvas."""
+        self.atlas_canvas.delete("all")
+        if self._tga is None:
+            self.atlas_canvas.create_text(
+                200, 100, text="No texture loaded", fill="#666666",
+                font=("TkDefaultFont", 12),
+            )
+            return
+
+        # Convert TGA to PhotoImage
+        self._atlas_photo = _tga_to_photoimage(self._tga, self)
+        self.atlas_canvas.create_image(0, 0, anchor=tk.NW, image=self._atlas_photo)
+
+    def _highlight_glyph_on_atlas(self, glyph: dict):
+        """Draw a highlight rectangle around the selected glyph on the atlas."""
+        self._render_atlas()  # Redraw base
+        if self._tga is None:
+            return
+
+        s0, t0, s1, t1 = glyph["s0"], glyph["t0"], glyph["s1"], glyph["t1"]
+        px0 = int(s0 * self._tga.width)
+        py0 = int(t0 * self._tga.height)
+        px1 = int(s1 * self._tga.width)
+        py1 = int(t1 * self._tga.height)
+
+        self.atlas_canvas.create_rectangle(
+            px0 - 1, py0 - 1, px1 + 1, py1 + 1,
+            outline="#ff4444", width=2,
+        )
 
     # ------------------------------------------------------------------
     # Glyph list
@@ -275,18 +417,17 @@ class FontEditor(tk.Toplevel):
         if not values:
             return
 
-        ch, code = values[0], values[1]
-        # Find the glyph data
-        code_int = int(code)
+        ch, code = values[0], int(values[1])
         glyph = None
         for g in self._font_data["glyphs"]:
-            if g["letter"] == code_int:
+            if g["letter"] == code:
                 glyph = g
                 break
 
         if glyph:
+            self._selected_glyph = glyph
             self._detail_var.set(
-                f"'{ch}' (code {code_int})  —  "
+                f"'{ch}' (code {code})  —  "
                 f"advance={glyph['dx']}  size={glyph['pixelWidth']}x{glyph['pixelHeight']}  "
                 f"bearing=({glyph['x0']}, {glyph['y0']})"
             )
@@ -294,13 +435,35 @@ class FontEditor(tk.Toplevel):
                 f"s0={glyph['s0']:.4f}  t0={glyph['t0']:.4f}  "
                 f"s1={glyph['s1']:.4f}  t1={glyph['t1']:.4f}"
             )
+            self._highlight_glyph_on_atlas(glyph)
 
     # ------------------------------------------------------------------
-    # Preview
+    # Text preview
     # ------------------------------------------------------------------
+
+    def _get_glyph_image(self, letter: int, scale: int = 2) -> tk.PhotoImage | None:
+        """Get or create a cached glyph PhotoImage."""
+        cache_key = (letter, scale)
+        if cache_key in self._glyph_images:
+            return self._glyph_images[cache_key]
+        if self._tga is None or self._font_data is None:
+            return None
+
+        glyph = None
+        for g in self._font_data["glyphs"]:
+            if g["letter"] == letter:
+                glyph = g
+                break
+        if glyph is None:
+            return None
+
+        img = _extract_glyph_image(self._tga, glyph, self, scale=scale, color="#ffffff")
+        if img:
+            self._glyph_images[cache_key] = img
+        return img
 
     def _update_preview(self):
-        """Render preview text using glyph metrics (placeholder — shows boxes)."""
+        """Render preview text using actual glyph bitmaps from the texture."""
         self.preview_canvas.delete("all")
         if not self._font_data:
             return
@@ -309,38 +472,28 @@ class FontEditor(tk.Toplevel):
         if not text:
             return
 
+        scale = 2
         glyphs_by_code = {g["letter"]: g for g in self._font_data["glyphs"]}
         px = 10
-        py = 30
-        height = self._font_data["pixelHeight"]
+        py = 50
 
         for ch in text:
             code = ord(ch)
             g = glyphs_by_code.get(code)
             if not g:
-                px += 8  # space for unknown
+                px += 8 * scale
                 continue
 
-            w = g["pixelWidth"]
-            h = g["pixelHeight"]
             x0 = g["x0"]
             y0 = g["y0"]
 
-            # Draw glyph bounding box (placeholder until we render from texture)
-            gx = px + x0
-            gy = py + y0
-            if w > 0 and h > 0:
-                self.preview_canvas.create_rectangle(
-                    gx, gy, gx + w, gy + h,
-                    outline="#5588aa", fill="#2a3a4a",
-                )
-                self.preview_canvas.create_text(
-                    gx + w / 2, gy + h / 2, text=ch,
-                    fill="#aaccee", font=("TkDefaultFont", max(7, h - 2)),
-                    anchor=tk.CENTER,
-                )
+            img = self._get_glyph_image(code, scale)
+            if img:
+                gx = px + x0 * scale
+                gy = py + y0 * scale
+                self.preview_canvas.create_image(gx, gy, anchor=tk.NW, image=img)
 
-            px += g["dx"]
+            px += g["dx"] * scale
 
         # Baseline indicator
         self.preview_canvas.create_line(
