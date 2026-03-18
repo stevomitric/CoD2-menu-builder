@@ -14,31 +14,24 @@ from menu_builder.tga import TGAImage, load_tga
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _FONTS_DIR = _PROJECT_ROOT / "fonts"
 
-# CoD2 font UV coordinates use a virtual height of 2x the actual texture height.
-# Glyphs are packed at half vertical density in the TGA.
-_T_SCALE = 2
+# CoD2 font glyphs are stored at half vertical resolution in the texture.
+# UV coords map directly to pixel positions (s*W, t*H), but the glyph's
+# pixelHeight is ~2x the texture height. The engine stretches vertically.
+_V_STRETCH = 2
 
 
 def _tga_to_photoimage(tga: TGAImage, master: tk.Misc) -> tk.PhotoImage:
-    """Convert TGA to PhotoImage, rendering alpha on dark background.
-
-    Stretches vertically by _T_SCALE to match the UV coordinate space.
-    """
-    out_w = tga.width
-    out_h = tga.height * _T_SCALE
-    img = tk.PhotoImage(width=out_w, height=out_h, master=master)
-
+    """Convert TGA to PhotoImage at native resolution, alpha on dark bg."""
+    img = tk.PhotoImage(width=tga.width, height=tga.height, master=master)
     rows = []
-    for y in range(out_h):
-        tex_y = y // _T_SCALE  # map back to actual texture row
+    for y in range(tga.height):
         row = []
-        for x in range(out_w):
-            a = tga.get_alpha(x, tex_y)
+        for x in range(tga.width):
+            a = tga.get_alpha(x, y)
             bg = 30
             v = int(bg + (255 - bg) * a / 255)
             row.append(f"#{v:02x}{v:02x}{v:02x}")
         rows.append(" ".join(row))
-
     for y, row_data in enumerate(rows):
         img.put("{" + row_data + "}", to=(0, y))
     return img
@@ -47,17 +40,16 @@ def _tga_to_photoimage(tga: TGAImage, master: tk.Misc) -> tk.PhotoImage:
 def _extract_glyph_image(
     tga: TGAImage, glyph: dict, master: tk.Misc, scale: int = 1, color: str = "#ffffff"
 ) -> tk.PhotoImage | None:
-    """Extract a single glyph from the atlas as a PhotoImage.
+    """Extract a single glyph from the atlas, stretched 2x vertically.
 
-    Uses virtual 1024-tall UV space, sampling from the 512-tall texture.
+    UV maps to actual texture pixels. Output is stretched vertically
+    to match the glyph's pixelHeight (engine does the same).
     """
     s0, t0, s1, t1 = glyph["s0"], glyph["t0"], glyph["s1"], glyph["t1"]
-    virtual_h = tga.height * _T_SCALE
-
     px0 = int(s0 * tga.width)
-    py0 = int(t0 * virtual_h)
+    py0 = int(t0 * tga.height)
     px1 = int(s1 * tga.width)
-    py1 = int(t1 * virtual_h)
+    py1 = int(t1 * tga.height)
     w = px1 - px0
     h = py1 - py0
     if w <= 0 or h <= 0:
@@ -67,13 +59,15 @@ def _extract_glyph_image(
     cg = int(color[3:5], 16)
     cb = int(color[5:7], 16)
 
-    img = tk.PhotoImage(width=w * scale, height=h * scale, master=master)
+    # Output is stretched vertically by _V_STRETCH to match pixelHeight
+    out_w = w * scale
+    out_h = h * _V_STRETCH * scale
+    img = tk.PhotoImage(width=out_w, height=out_h, master=master)
     rows = []
-    for vy in range(py0, py1):
-        tex_y = vy // _T_SCALE  # map virtual Y to actual texture row
+    for ty in range(py0, py1):
         row = []
-        for vx in range(px0, px1):
-            a = tga.get_alpha(vx, tex_y)
+        for tx in range(px0, px1):
+            a = tga.get_alpha(tx, ty)
             r = int(cr * a / 255)
             g = int(cg * a / 255)
             b = int(cb * a / 255)
@@ -81,7 +75,8 @@ def _extract_glyph_image(
             for _ in range(scale):
                 row.append(hex_col)
         row_str = " ".join(row)
-        for _ in range(scale):
+        # Each texture row appears _V_STRETCH * scale times
+        for _ in range(_V_STRETCH * scale):
             rows.append(row_str)
 
     for y, row_data in enumerate(rows):
@@ -378,23 +373,18 @@ class FontEditor(tk.Toplevel):
 
         self._atlas_photo = _tga_to_photoimage(self._tga, self)
         self.atlas_canvas.create_image(0, 0, anchor=tk.NW, image=self._atlas_photo)
-
-        # Set scroll region to the full atlas size
-        atlas_w = self._tga.width
-        atlas_h = self._tga.height * _T_SCALE
-        self.atlas_canvas.configure(scrollregion=(0, 0, atlas_w, atlas_h))
+        self.atlas_canvas.configure(scrollregion=(0, 0, self._tga.width, self._tga.height))
 
     def _highlight_glyph_on_atlas(self, glyph: dict):
         self._render_atlas()
         if self._tga is None:
             return
 
-        virtual_h = self._tga.height * _T_SCALE
         s0, t0, s1, t1 = glyph["s0"], glyph["t0"], glyph["s1"], glyph["t1"]
         px0 = int(s0 * self._tga.width)
-        py0 = int(t0 * virtual_h)
+        py0 = int(t0 * self._tga.height)
         px1 = int(s1 * self._tga.width)
-        py1 = int(t1 * virtual_h)
+        py1 = int(t1 * self._tga.height)
 
         self.atlas_canvas.create_rectangle(
             px0 - 1, py0 - 1, px1 + 1, py1 + 1,
@@ -402,7 +392,7 @@ class FontEditor(tk.Toplevel):
         )
 
         # Scroll to show the glyph
-        self.atlas_canvas.yview_moveto(max(0, (py0 - 20)) / (self._tga.height * _T_SCALE))
+        self.atlas_canvas.yview_moveto(max(0, (py0 - 20)) / self._tga.height)
 
     # ------------------------------------------------------------------
     # Glyph list
