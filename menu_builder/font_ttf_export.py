@@ -55,10 +55,11 @@ def _draw_bitmap_glyph(pen, grid: list[list[bool]], x_offset: int, y_offset: int
             y0 = y_offset + (h - y - 1) * scale
             x1 = x0 + scale
             y1 = y0 + scale
+            # Clockwise winding for TrueType, counter-clockwise for CFF
             pen.moveTo((x0, y0))
-            pen.lineTo((x1, y0))
-            pen.lineTo((x1, y1))
             pen.lineTo((x0, y1))
+            pen.lineTo((x1, y1))
+            pen.lineTo((x1, y0))
             pen.closePath()
 
 
@@ -146,10 +147,29 @@ def _build_font(
 
     fb.setupHorizontalMetrics(glyph_metrics)
     fb.setupHorizontalHeader(ascent=ascent, descent=descent)
-    fb.setupNameTable({"familyName": family_name, "styleName": "Regular"})
-    fb.setupOS2(sTypoAscender=ascent, sTypoDescender=descent, sTypoLineGap=0)
+
+    # Name table — Windows requires IDs 0-6
+    version_str = "Version 1.0"
+    unique_id = f"{family_name}-Regular"
+    fb.setupNameTable({
+        "familyName": family_name,
+        "styleName": "Regular",
+        "uniqueFontIdentifier": unique_id,
+        "fullName": f"{family_name} Regular",
+        "version": version_str,
+        "psName": family_name.replace(" ", ""),
+    })
+
+    fb.setupOS2(
+        sTypoAscender=ascent,
+        sTypoDescender=descent,
+        sTypoLineGap=0,
+        fsType=0,  # installable embedding
+        usWeightClass=400,
+        usWidthClass=5,
+    )
     fb.setupPost()
-    fb.setupHead(unitsPerEm=upm)
+    fb.setupHead(unitsPerEm=upm, created=3600000000, modified=3600000000)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fb.font.save(str(output_path))
