@@ -51,8 +51,7 @@ class FontEditor(tk.Toplevel):
         file_menu.add_command(label="Open Font...", command=self._open_font)
         file_menu.add_command(label="Import TTF/OTF...", command=self._import_ttf, state=tk.DISABLED)
         file_menu.add_separator()
-        file_menu.add_command(label="Export Font...", command=self._export_font, state=tk.DISABLED)
-        file_menu.add_command(label="Export TGA...", command=self._export_tga, state=tk.DISABLED)
+        file_menu.add_command(label="Export BMFont...", command=self._export_bmfont)
         file_menu.add_separator()
         file_menu.add_command(label="Close", command=self.destroy)
 
@@ -224,11 +223,43 @@ class FontEditor(tk.Toplevel):
     def _import_ttf(self):
         messagebox.showinfo("Not Yet", "TTF/OTF import will be implemented soon.")
 
-    def _export_font(self):
-        messagebox.showinfo("Not Yet", "Font export will be implemented soon.")
+    def _export_bmfont(self):
+        if not self._font_data:
+            messagebox.showinfo("Info", "No font loaded.")
+            return
 
-    def _export_tga(self):
-        messagebox.showinfo("Not Yet", "TGA export will be implemented soon.")
+        output_dir = filedialog.askdirectory(title="Select output directory for BMFont export")
+        if not output_dir:
+            return
+
+        # Find the atlas PNG
+        material = self._font_data["materialName"]
+        tex_name = material.rsplit("/", 1)[-1] if "/" in material else material
+        atlas_path = None
+        font_dir = self._font_data["path"].parent if "path" in self._font_data else _FONTS_DIR
+        for search_dir in [font_dir, _FONTS_DIR]:
+            candidate = search_dir / f"{tex_name}.png"
+            if candidate.exists():
+                atlas_path = candidate
+                break
+
+        if atlas_path is None:
+            messagebox.showerror("Error", f"Atlas PNG not found for {tex_name}")
+            return
+
+        try:
+            from menu_builder.font_export import export_bmfont
+            fnt_path, png_path = export_bmfont(
+                self._font_data,
+                atlas_png_path=atlas_path,
+                output_dir=Path(output_dir),
+                tex_w=self._atlas_w or 512,
+                tex_h=self._atlas_h or 1024,
+            )
+            self._status_var.set(f"Exported: {fnt_path.name} + {png_path.name}")
+            messagebox.showinfo("Export Complete", f"Saved to:\n{fnt_path}\n{png_path}")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
 
     # ------------------------------------------------------------------
     # Font loading
