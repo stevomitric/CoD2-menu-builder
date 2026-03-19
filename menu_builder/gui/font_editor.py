@@ -49,7 +49,7 @@ class FontEditor(tk.Toplevel):
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="Open Font...", command=self._open_font)
-        file_menu.add_command(label="Import TTF/OTF...", command=self._import_ttf, state=tk.DISABLED)
+        file_menu.add_command(label="Import TTF/OTF...", command=self._import_ttf)
         file_menu.add_separator()
         file_menu.add_command(label="Export BMFont...", command=self._export_bmfont)
         file_menu.add_command(label="Export TTF...", command=self._export_ttf)
@@ -223,7 +223,74 @@ class FontEditor(tk.Toplevel):
             self._load_font(Path(path))
 
     def _import_ttf(self):
-        messagebox.showinfo("Not Yet", "TTF/OTF import will be implemented soon.")
+        ttf_path = filedialog.askopenfilename(
+            title="Import TTF/OTF Font",
+            filetypes=[("Font files", "*.ttf *.otf"), ("TrueType", "*.ttf"), ("OpenType", "*.otf"), ("All files", "*.*")],
+        )
+        if not ttf_path:
+            return
+
+        # Ask for pixel height
+        size_win = tk.Toplevel(self)
+        size_win.title("Font Size")
+        size_win.geometry("300x120")
+        size_win.resizable(False, False)
+        size_win.transient(self)
+        size_win.grab_set()
+
+        Label(size_win, text="Pixel height for the CoD2 font:").pack(padx=10, pady=(10, 5))
+        size_var = tk.StringVar(value="16")
+        size_entry = Entry(size_win, textvariable=size_var, width=10)
+        size_entry.pack(pady=5)
+        size_entry.focus_set()
+
+        result = {"confirmed": False}
+
+        def _on_ok(event=None):
+            result["confirmed"] = True
+            size_win.destroy()
+
+        size_entry.bind("<Return>", _on_ok)
+        Button(size_win, text="Import", command=_on_ok).pack(pady=5)
+
+        self.wait_window(size_win)
+
+        if not result["confirmed"]:
+            return
+
+        try:
+            pixel_height = int(size_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "Invalid pixel height.")
+            return
+
+        if pixel_height < 6 or pixel_height > 72:
+            messagebox.showerror("Error", "Pixel height must be between 6 and 72.")
+            return
+
+        # Ask for output directory
+        output_dir = filedialog.askdirectory(title="Select output directory")
+        if not output_dir:
+            return
+
+        try:
+            from menu_builder.font_import import import_ttf
+            stem = Path(ttf_path).stem
+            font_path, png_path = import_ttf(
+                ttf_path=Path(ttf_path),
+                pixel_height=pixel_height,
+                output_font_path=Path(output_dir) / stem,
+                output_png_path=Path(output_dir) / f"{stem}_atlas.png",
+            )
+            self._status_var.set(f"Imported: {font_path.name} + {png_path.name}")
+            messagebox.showinfo("Import Complete", f"Saved to:\n{font_path}\n{png_path}")
+
+            # Load the newly created font
+            self._load_font(font_path)
+        except ImportError:
+            messagebox.showerror("Error", "Pillow package required.\nInstall with: pip install Pillow")
+        except Exception as e:
+            messagebox.showerror("Import Error", str(e))
 
     def _export_bmfont(self):
         if not self._font_data:
