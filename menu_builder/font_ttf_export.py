@@ -39,8 +39,16 @@ def _extract_glyph_bitmap(
     return grid
 
 
-def _draw_bitmap_glyph(pen, grid: list[list[bool]], x_offset: int, y_offset: int, scale: int):
-    """Draw a bitmap glyph using the pen interface. Each on-pixel = a square."""
+def _draw_bitmap_glyph(pen, grid: list[list[bool]], x_bearing: int, y_top: int, scale: int):
+    """Draw a bitmap glyph using the pen interface. Each on-pixel = a square.
+
+    Args:
+        pen: The glyph pen to draw into.
+        grid: 2D bitmap (grid[0] = top row of glyph).
+        x_bearing: X offset from pen position (font units).
+        y_top: Y coordinate of the top of the glyph (font units, positive = above baseline).
+        scale: Font units per pixel.
+    """
     if not grid:
         return
 
@@ -51,15 +59,17 @@ def _draw_bitmap_glyph(pen, grid: list[list[bool]], x_offset: int, y_offset: int
         for x in range(w):
             if not grid[y][x]:
                 continue
-            x0 = x_offset + x * scale
-            y0 = y_offset + (h - y - 1) * scale
-            x1 = x0 + scale
-            y1 = y0 + scale
-            # Clockwise winding for TrueType, counter-clockwise for CFF
-            pen.moveTo((x0, y0))
-            pen.lineTo((x0, y1))
-            pen.lineTo((x1, y1))
-            pen.lineTo((x1, y0))
+            # grid[y] is row y from top. In font coords, top is at y_top,
+            # each row goes downward (decreasing Y).
+            fx0 = x_bearing + x * scale
+            fy_top = y_top - y * scale
+            fx1 = fx0 + scale
+            fy_bottom = fy_top - scale
+            # Clockwise winding for TrueType
+            pen.moveTo((fx0, fy_bottom))
+            pen.lineTo((fx0, fy_top))
+            pen.lineTo((fx1, fy_top))
+            pen.lineTo((fx1, fy_bottom))
             pen.closePath()
 
 
@@ -112,9 +122,9 @@ def _build_font(
         for glyph_name, g, grid in glyph_data_list:
             pen = TTGlyphPen(None)
             if grid and g["pixelWidth"] > 0:
-                x_off = g["x0"] * units_per_pixel
-                y_off = g["y0"] * units_per_pixel + len(grid) * units_per_pixel
-                _draw_bitmap_glyph(pen, grid, x_off, y_off, units_per_pixel)
+                x_bearing = g["x0"] * units_per_pixel
+                y_top = -g["y0"] * units_per_pixel  # y0 is negative, negate to get positive font-coord
+                _draw_bitmap_glyph(pen, grid, x_bearing, y_top, units_per_pixel)
             pen_glyphs[glyph_name] = pen.glyph()
 
         fb.setupGlyf(pen_glyphs)
@@ -126,9 +136,9 @@ def _build_font(
             width = g["dx"] * units_per_pixel
             pen = T2CharStringPen(width, None)
             if grid and g["pixelWidth"] > 0:
-                x_off = g["x0"] * units_per_pixel
-                y_off = g["y0"] * units_per_pixel + len(grid) * units_per_pixel
-                _draw_bitmap_glyph(pen, grid, x_off, y_off, units_per_pixel)
+                x_bearing = g["x0"] * units_per_pixel
+                y_top = -g["y0"] * units_per_pixel
+                _draw_bitmap_glyph(pen, grid, x_bearing, y_top, units_per_pixel)
             charstrings[glyph_name] = pen.getCharString()
 
         # .notdef
@@ -142,8 +152,18 @@ def _build_font(
             privateDict={},
         )
 
-    ascent = int(pixel_height * 0.85 * units_per_pixel)
-    descent = int(-pixel_height * 0.15 * units_per_pixel)
+    # Compute ascent/descent from actual glyph y0 values
+    max_ascent = 0
+    max_descent = 0
+    for g in font_data["glyphs"]:
+        if g["pixelHeight"] == 0:
+            continue
+        top = -g["y0"]  # pixels above baseline
+        bottom = -g["y0"] - g["pixelHeight"]  # negative = below baseline
+        max_ascent = max(max_ascent, top)
+        max_descent = min(max_descent, bottom)
+    ascent = (max_ascent + 1) * units_per_pixel  # +1 for padding
+    descent = (max_descent - 1) * units_per_pixel  # -1 for padding
 
     fb.setupHorizontalMetrics(glyph_metrics)
     fb.setupHorizontalHeader(ascent=ascent, descent=descent)
@@ -164,6 +184,8 @@ def _build_font(
         sTypoAscender=ascent,
         sTypoDescender=descent,
         sTypoLineGap=0,
+        usWinAscent=ascent,
+        usWinDescent=abs(descent),  # must be positive
         fsType=0,  # installable embedding
         usWeightClass=400,
         usWidthClass=5,
