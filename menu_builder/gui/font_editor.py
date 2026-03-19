@@ -52,6 +52,7 @@ class FontEditor(tk.Toplevel):
         file_menu.add_command(label="Import TTF/OTF...", command=self._import_ttf, state=tk.DISABLED)
         file_menu.add_separator()
         file_menu.add_command(label="Export BMFont...", command=self._export_bmfont)
+        file_menu.add_command(label="Export TTF...", command=self._export_ttf)
         file_menu.add_separator()
         file_menu.add_command(label="Close", command=self.destroy)
 
@@ -258,6 +259,52 @@ class FontEditor(tk.Toplevel):
             )
             self._status_var.set(f"Exported: {fnt_path.name} + {png_path.name}")
             messagebox.showinfo("Export Complete", f"Saved to:\n{fnt_path}\n{png_path}")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
+
+    def _export_ttf(self):
+        if not self._font_data or "path" not in self._font_data:
+            messagebox.showinfo("Info", "No font loaded.")
+            return
+
+        # Find atlas PNG
+        material = self._font_data["materialName"]
+        tex_name = material.rsplit("/", 1)[-1] if "/" in material else material
+        atlas_path = None
+        font_dir = self._font_data["path"].parent
+        for search_dir in [font_dir, _FONTS_DIR]:
+            candidate = search_dir / f"{tex_name}.png"
+            if candidate.exists():
+                atlas_path = candidate
+                break
+
+        if atlas_path is None:
+            messagebox.showerror("Error", f"Atlas PNG not found for {tex_name}")
+            return
+
+        raw_name = self._font_data["fontName"].rsplit("/", 1)[-1]
+        output_path = filedialog.asksaveasfilename(
+            title="Export TTF",
+            defaultextension=".ttf",
+            initialfile=f"{raw_name}.ttf",
+            filetypes=[("TrueType Font", "*.ttf"), ("All files", "*.*")],
+        )
+        if not output_path:
+            return
+
+        try:
+            from menu_builder.font_ttf_export import export_ttf
+            ttf_path = export_ttf(
+                font_path=self._font_data["path"],
+                atlas_png_path=atlas_path,
+                output_path=Path(output_path),
+                tex_w=self._atlas_w or 512,
+                tex_h=self._atlas_h or 1024,
+            )
+            self._status_var.set(f"Exported TTF: {ttf_path.name}")
+            messagebox.showinfo("Export Complete", f"Saved to:\n{ttf_path}")
+        except ImportError:
+            messagebox.showerror("Error", "fonttools package required.\nInstall with: pip install fonttools")
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
 
