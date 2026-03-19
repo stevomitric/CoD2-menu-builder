@@ -53,6 +53,7 @@ class FontEditor(tk.Toplevel):
         file_menu.add_separator()
         file_menu.add_command(label="Export BMFont...", command=self._export_bmfont)
         file_menu.add_command(label="Export TTF...", command=self._export_ttf)
+        file_menu.add_command(label="Export OTF...", command=self._export_otf)
         file_menu.add_separator()
         file_menu.add_command(label="Close", command=self.destroy)
 
@@ -263,50 +264,69 @@ class FontEditor(tk.Toplevel):
             messagebox.showerror("Export Error", str(e))
 
     def _export_ttf(self):
+        self._export_vector_font("ttf")
+
+    def _export_otf(self):
+        self._export_vector_font("otf")
+
+    def _export_vector_font(self, fmt: str):
         if not self._font_data or "path" not in self._font_data:
             messagebox.showinfo("Info", "No font loaded.")
             return
 
-        # Find atlas PNG
-        material = self._font_data["materialName"]
-        tex_name = material.rsplit("/", 1)[-1] if "/" in material else material
-        atlas_path = None
-        font_dir = self._font_data["path"].parent
-        for search_dir in [font_dir, _FONTS_DIR]:
-            candidate = search_dir / f"{tex_name}.png"
-            if candidate.exists():
-                atlas_path = candidate
-                break
-
+        atlas_path = self._find_atlas_png()
         if atlas_path is None:
-            messagebox.showerror("Error", f"Atlas PNG not found for {tex_name}")
             return
 
+        ext = f".{fmt}"
+        label = fmt.upper()
         raw_name = self._font_data["fontName"].rsplit("/", 1)[-1]
         output_path = filedialog.asksaveasfilename(
-            title="Export TTF",
-            defaultextension=".ttf",
-            initialfile=f"{raw_name}.ttf",
-            filetypes=[("TrueType Font", "*.ttf"), ("All files", "*.*")],
+            title=f"Export {label}",
+            defaultextension=ext,
+            initialfile=f"{raw_name}{ext}",
+            filetypes=[(f"{label} Font", f"*{ext}"), ("All files", "*.*")],
         )
         if not output_path:
             return
 
         try:
-            from menu_builder.font_ttf_export import export_ttf
-            ttf_path = export_ttf(
-                font_path=self._font_data["path"],
-                atlas_png_path=atlas_path,
-                output_path=Path(output_path),
-                tex_w=self._atlas_w or 512,
-                tex_h=self._atlas_h or 1024,
-            )
-            self._status_var.set(f"Exported TTF: {ttf_path.name}")
-            messagebox.showinfo("Export Complete", f"Saved to:\n{ttf_path}")
+            if fmt == "ttf":
+                from menu_builder.font_ttf_export import export_ttf
+                result = export_ttf(
+                    font_path=self._font_data["path"],
+                    atlas_png_path=atlas_path,
+                    output_path=Path(output_path),
+                    tex_w=self._atlas_w or 512,
+                    tex_h=self._atlas_h or 1024,
+                )
+            else:
+                from menu_builder.font_ttf_export import export_otf
+                result = export_otf(
+                    font_path=self._font_data["path"],
+                    atlas_png_path=atlas_path,
+                    output_path=Path(output_path),
+                    tex_w=self._atlas_w or 512,
+                    tex_h=self._atlas_h or 1024,
+                )
+            self._status_var.set(f"Exported {label}: {result.name}")
+            messagebox.showinfo("Export Complete", f"Saved to:\n{result}")
         except ImportError:
             messagebox.showerror("Error", "fonttools package required.\nInstall with: pip install fonttools")
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
+
+    def _find_atlas_png(self) -> Path | None:
+        """Find the atlas PNG for the current font."""
+        material = self._font_data["materialName"]
+        tex_name = material.rsplit("/", 1)[-1] if "/" in material else material
+        font_dir = self._font_data["path"].parent
+        for search_dir in [font_dir, _FONTS_DIR]:
+            candidate = search_dir / f"{tex_name}.png"
+            if candidate.exists():
+                return candidate
+        messagebox.showerror("Error", f"Atlas PNG not found for {tex_name}")
+        return None
 
     # ------------------------------------------------------------------
     # Font loading

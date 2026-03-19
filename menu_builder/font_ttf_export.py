@@ -1,4 +1,4 @@
-"""Export CoD2 font files to TTF format using fontTools.
+"""Export CoD2 font files to TTF or OTF format using fontTools.
 
 Converts bitmap glyphs to vector outlines by tracing pixel edges.
 The result is a pixel font that looks correct at the original size.
@@ -25,9 +25,8 @@ def _extract_glyph_bitmap(
     y0 = int(glyph["t0"] * tex_h)
     x1 = int(glyph["s1"] * tex_w)
     y1 = int(glyph["t1"] * tex_h)
-    w, h = x1 - x0, y1 - y0
 
-    if w <= 0 or h <= 0:
+    if x1 - x0 <= 0 or y1 - y0 <= 0:
         return []
 
     grid = []
@@ -52,7 +51,6 @@ def _draw_bitmap_glyph(pen, grid: list[list[bool]], x_offset: int, y_offset: int
         for x in range(w):
             if not grid[y][x]:
                 continue
-            # Font coords: y increases upward, bitmap y increases downward
             x0 = x_offset + x * scale
             y0 = y_offset + (h - y - 1) * scale
             x1 = x0 + scale
@@ -64,25 +62,15 @@ def _draw_bitmap_glyph(pen, grid: list[list[bool]], x_offset: int, y_offset: int
             pen.closePath()
 
 
-def export_ttf(
+def _build_font(
     font_path: Path,
     atlas_png_path: Path,
     output_path: Path,
-    tex_w: int = 512,
-    tex_h: int = 1024,
+    is_ttf: bool,
+    tex_w: int,
+    tex_h: int,
 ) -> Path:
-    """Export a CoD2 font to TTF format.
-
-    Args:
-        font_path: Path to CoD2 binary font file.
-        atlas_png_path: Path to the atlas PNG (IWI-converted).
-        output_path: Path for the output .ttf file.
-        tex_w: Atlas texture width for UV mapping.
-        tex_h: Atlas texture height for UV mapping.
-
-    Returns:
-        Path to the written TTF file.
-    """
+    """Shared builder for TTF and OTF export."""
     font_data = load_cod2_font(font_path)
     atlas = load_png(atlas_png_path)
 
@@ -90,7 +78,6 @@ def export_ttf(
     raw_name = font_data["fontName"].rsplit("/", 1)[-1] if "/" in font_data["fontName"] else font_data["fontName"]
     family_name = raw_name or "CoD2Font"
 
-    # Scale: font units per pixel. UPM = pixel_height * scale
     units_per_pixel = 64
     upm = pixel_height * units_per_pixel
 
@@ -98,7 +85,7 @@ def export_ttf(
     glyph_order = [".notdef"]
     char_map = {}
     glyph_metrics = {".notdef": (upm // 2, 0)}
-    glyph_data_list = []  # (glyph_name, glyph_dict, grid)
+    glyph_data_list = []
 
     for g in font_data["glyphs"]:
         letter = g["letter"]
@@ -107,42 +94,53 @@ def export_ttf(
         glyph_name = f"uni{letter:04X}"
         glyph_order.append(glyph_name)
         char_map[letter] = glyph_name
-
-        advance = g["dx"] * units_per_pixel
-        lsb = g["x0"] * units_per_pixel
-        glyph_metrics[glyph_name] = (advance, lsb)
-
+        glyph_metrics[glyph_name] = (g["dx"] * units_per_pixel, g["x0"] * units_per_pixel)
         grid = _extract_glyph_bitmap(atlas, g, tex_w, tex_h)
         glyph_data_list.append((glyph_name, g, grid))
 
-    # Create font builder
-    fb = FontBuilder(upm, isTTF=True)
+    fb = FontBuilder(upm, isTTF=is_ttf)
     fb.setupGlyphOrder(glyph_order)
     fb.setupCharacterMap(char_map)
 
-    # Draw all glyphs using TTGlyphPen
-    from fontTools.pens.ttGlyphPen import TTGlyphPen
-
-    pen_glyphs = {}
-
-    # .notdef — empty glyph
-    pen = TTGlyphPen(None)
-    pen_glyphs[".notdef"] = pen.glyph()
-
-    for glyph_name, g, grid in glyph_data_list:
+    if is_ttf:
+        from fontTools.pens.ttGlyphPen import TTGlyphPen
+        pen_glyphs = {}
         pen = TTGlyphPen(None)
+        pen_glyphs[".notdef"] = pen.glyph()
 
-        if grid and g["pixelWidth"] > 0:
-            x_offset = g["x0"] * units_per_pixel
-            y_offset = g["y0"] * units_per_pixel
-            glyph_h = len(grid)
-            _draw_bitmap_glyph(pen, grid, x_offset, y_offset + glyph_h * units_per_pixel, units_per_pixel)
+        for glyph_name, g, grid in glyph_data_list:
+            pen = TTGlyphPen(None)
+            if grid and g["pixelWidth"] > 0:
+                x_off = g["x0"] * units_per_pixel
+                y_off = g["y0"] * units_per_pixel + len(grid) * units_per_pixel
+                _draw_bitmap_glyph(pen, grid, x_off, y_off, units_per_pixel)
+            pen_glyphs[glyph_name] = pen.glyph()
 
-        pen_glyphs[glyph_name] = pen.glyph()
+        fb.setupGlyf(pen_glyphs)
+    else:
+        from fontTools.pens.t2CharStringPen import T2CharStringPen
+        charstrings = {}
 
-    fb.setupGlyf(pen_glyphs)
+        for glyph_name, g, grid in glyph_data_list:
+            width = g["dx"] * units_per_pixel
+            pen = T2CharStringPen(width, None)
+            if grid and g["pixelWidth"] > 0:
+                x_off = g["x0"] * units_per_pixel
+                y_off = g["y0"] * units_per_pixel + len(grid) * units_per_pixel
+                _draw_bitmap_glyph(pen, grid, x_off, y_off, units_per_pixel)
+            charstrings[glyph_name] = pen.getCharString()
 
-    # Ascent/descent
+        # .notdef
+        notdef_pen = T2CharStringPen(upm // 2, None)
+        charstrings[".notdef"] = notdef_pen.getCharString()
+
+        fb.setupCFF(
+            psName=family_name,
+            fontInfo={},
+            charStringsDict=charstrings,
+            privateDict={},
+        )
+
     ascent = int(pixel_height * 0.85 * units_per_pixel)
     descent = int(-pixel_height * 0.15 * units_per_pixel)
 
@@ -156,3 +154,25 @@ def export_ttf(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fb.font.save(str(output_path))
     return output_path
+
+
+def export_ttf(
+    font_path: Path,
+    atlas_png_path: Path,
+    output_path: Path,
+    tex_w: int = 512,
+    tex_h: int = 1024,
+) -> Path:
+    """Export a CoD2 font to TTF (TrueType) format."""
+    return _build_font(font_path, atlas_png_path, output_path, is_ttf=True, tex_w=tex_w, tex_h=tex_h)
+
+
+def export_otf(
+    font_path: Path,
+    atlas_png_path: Path,
+    output_path: Path,
+    tex_w: int = 512,
+    tex_h: int = 1024,
+) -> Path:
+    """Export a CoD2 font to OTF (OpenType/CFF) format."""
+    return _build_font(font_path, atlas_png_path, output_path, is_ttf=False, tex_w=tex_w, tex_h=tex_h)
