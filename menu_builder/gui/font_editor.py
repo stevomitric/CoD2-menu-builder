@@ -8,28 +8,22 @@ from tkinter.ttk import *  # noqa: F403
 from tkinter import filedialog, messagebox
 from pathlib import Path
 
-from menu_builder.tga import TGAImage, load_tga
-
 # Project root (fonts/ directory lives here)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _FONTS_DIR = _PROJECT_ROOT / "fonts"
 
 
-def _tga_to_photoimage(tga: TGAImage, master: tk.Misc) -> tk.PhotoImage:
-    """Convert TGA to PhotoImage at native resolution, alpha on dark bg."""
-    img = tk.PhotoImage(width=tga.width, height=tga.height, master=master)
-    rows = []
-    for y in range(tga.height):
-        row = []
-        for x in range(tga.width):
-            a = tga.get_alpha(x, y)
-            bg = 30
-            v = int(bg + (255 - bg) * a / 255)
-            row.append(f"#{v:02x}{v:02x}{v:02x}")
-        rows.append(" ".join(row))
-    for y, row_data in enumerate(rows):
-        img.put("{" + row_data + "}", to=(0, y))
-    return img
+def _glyph_rect(glyph: dict, tex_w: int, tex_h: int) -> tuple[int, int, int, int]:
+    """Get pixel rect (x0, y0, x1, y1) for a glyph on the atlas.
+
+    Uses floor (int) mapping on the IWI texture dimensions.
+    """
+    return (
+        int(glyph["s0"] * tex_w),
+        int(glyph["t0"] * tex_h),
+        int(glyph["s1"] * tex_w),
+        int(glyph["t1"] * tex_h),
+    )
 
 
 class FontEditor(tk.Toplevel):
@@ -42,8 +36,9 @@ class FontEditor(tk.Toplevel):
         self.minsize(800, 500)
 
         self._font_data: dict | None = None
-        self._tga: TGAImage | None = None
         self._atlas_photo: tk.PhotoImage | None = None
+        self._atlas_w = 0  # texture dimensions (from PNG)
+        self._atlas_h = 0
         self._glyph_images: dict[tuple, tk.PhotoImage] = {}
         self._selected_glyph: dict | None = None
 
@@ -201,7 +196,7 @@ class FontEditor(tk.Toplevel):
             return []
         return sorted(
             f.name for f in _FONTS_DIR.iterdir()
-            if f.is_file() and not f.name.endswith(".tga")
+            if f.is_file() and f.suffix not in (".tga", ".png")
         )
 
     def _load_stock_font(self, name: str):
@@ -280,7 +275,7 @@ class FontEditor(tk.Toplevel):
                 "materialName": material_name, "glyphs": glyphs,
             }
 
-            self._load_texture(path.parent, material_name)
+            self._load_atlas(path.parent, material_name)
 
             self._info_labels["Name"].set(font_name)
             self._info_labels["Pixel Height"].set(str(pixel_height))
@@ -297,15 +292,24 @@ class FontEditor(tk.Toplevel):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load font: {e}")
 
-    def _load_texture(self, font_dir: Path, material_name: str):
-        self._tga = None
+    def _load_atlas(self, font_dir: Path, material_name: str):
+        """Load the atlas PNG (IWI-converted) for the font."""
         self._atlas_photo = None
+        self._atlas_w = 0
+        self._atlas_h = 0
 
         tex_name = material_name.rsplit("/", 1)[-1] if "/" in material_name else material_name
-        for tga_path in [font_dir / f"{tex_name}.tga", _FONTS_DIR / f"{tex_name}.tga"]:
-            if tga_path.exists():
-                self._tga = load_tga(tga_path)
-                return
+        # Prefer PNG (IWI-converted, correct UV mapping) over TGA (source asset)
+        for ext in (".png", ".tga"):
+            for search_dir in [font_dir, _FONTS_DIR]:
+                img_path = search_dir / f"{tex_name}{ext}"
+                if img_path.exists():
+                    if ext == ".png":
+                        self._atlas_photo = tk.PhotoImage(file=str(img_path), master=self)
+                        self._atlas_w = self._atlas_photo.width()
+                        self._atlas_h = self._atlas_photo.height()
+                    # Skip TGA for now — UV mapping doesn't match
+                    return
 
     # ------------------------------------------------------------------
     # Atlas rendering
@@ -313,15 +317,30 @@ class FontEditor(tk.Toplevel):
 
     def _render_atlas(self):
         self.atlas_canvas.delete("all")
-        if self._tga is None:
+        if self._atlas_photo is None:
             self.atlas_canvas.create_text(
-                200, 100, text="No texture loaded", fill="#666666", font=("TkDefaultFont", 12),
+                200, 100, text="No atlas PNG found", fill="#666666", font=("TkDefaultFont", 12),
             )
             return
 
-        self._atlas_photo = _tga_to_photoimage(self._tga, self)
         self.atlas_canvas.create_image(0, 0, anchor=tk.NW, image=self._atlas_photo)
-        self.atlas_canvas.configure(scrollregion=(0, 0, self._tga.width, self._tga.height))
+        self.atlas_canvas.configure(scrollregion=(0, 0, self._atlas_w, self._atlas_h))
+
+    def _highlight_glyph_on_atlas(self, glyph: dict):
+        self._render_atlas()
+        if self._atlas_photo is None or self._atlas_w == 0:
+            return
+
+        x0, y0, x1, y1 = _glyph_rect(glyph, self._atlas_w, self._atlas_h)
+
+        self.atlas_canvas.create_rectangle(
+            x0 - 1, y0 - 1, x1 + 1, y1 + 1,
+            outline="#ff4444", width=2,
+        )
+
+        # Scroll to show the glyph
+        if self._atlas_h > 0:
+            self.atlas_canvas.yview_moveto(max(0, (y0 - 20)) / self._atlas_h)
 
     # ------------------------------------------------------------------
     # Glyph list
@@ -366,13 +385,48 @@ class FontEditor(tk.Toplevel):
                 f"s0={glyph['s0']:.4f}  t0={glyph['t0']:.4f}  "
                 f"s1={glyph['s1']:.4f}  t1={glyph['t1']:.4f}"
             )
+            self._highlight_glyph_on_atlas(glyph)
 
     # ------------------------------------------------------------------
-    # Text preview — renders using glyph metrics (no texture sampling)
+    # Text preview
     # ------------------------------------------------------------------
+
+    def _get_glyph_image(self, letter: int, scale: int = 2) -> tk.PhotoImage | None:
+        """Extract a glyph from the atlas PNG as a PhotoImage."""
+        cache_key = (letter, scale)
+        if cache_key in self._glyph_images:
+            return self._glyph_images[cache_key]
+        if self._atlas_photo is None or self._font_data is None:
+            return None
+
+        glyph = None
+        for g in self._font_data["glyphs"]:
+            if g["letter"] == letter:
+                glyph = g
+                break
+        if glyph is None:
+            return None
+
+        x0, y0, x1, y1 = _glyph_rect(glyph, self._atlas_w, self._atlas_h)
+        w, h = x1 - x0, y1 - y0
+        if w <= 0 or h <= 0:
+            return None
+
+        # Crop from the atlas PhotoImage
+        try:
+            cropped = tk.PhotoImage(width=w, height=h, master=self)
+            # Copy pixel region from atlas
+            cropped.tk.call(cropped, "copy", self._atlas_photo,
+                            "-from", x0, y0, x1, y1)
+            if scale > 1:
+                cropped = cropped.zoom(scale, scale)
+            self._glyph_images[cache_key] = cropped
+            return cropped
+        except Exception:
+            return None
 
     def _update_preview(self):
-        """Render preview text using glyph metrics."""
+        """Render preview text using actual glyph bitmaps from the atlas."""
         self.preview_canvas.delete("all")
         if not self._font_data:
             return
@@ -385,6 +439,7 @@ class FontEditor(tk.Toplevel):
         glyphs_by_code = {g["letter"]: g for g in self._font_data["glyphs"]}
         px = 10
         py = 50
+
         for ch in text:
             code = ord(ch)
             g = glyphs_by_code.get(code)
@@ -392,23 +447,11 @@ class FontEditor(tk.Toplevel):
                 px += 8 * scale
                 continue
 
-            w = g["pixelWidth"]
-            h = g["pixelHeight"]
-            x0 = g["x0"]
-            y0 = g["y0"]
-
-            gx = px + x0 * scale
-            gy = py + y0 * scale
-            if w > 0 and h > 0:
-                self.preview_canvas.create_rectangle(
-                    gx, gy, gx + w * scale, gy + h * scale,
-                    outline="#5588aa", fill="#2a3a4a",
-                )
-                self.preview_canvas.create_text(
-                    gx + w * scale / 2, gy + h * scale / 2, text=ch,
-                    fill="#aaccee", font=("TkDefaultFont", max(7, h * scale - 4)),
-                    anchor=tk.CENTER,
-                )
+            img = self._get_glyph_image(code, scale)
+            if img:
+                gx = px + g["x0"] * scale
+                gy = py + g["y0"] * scale
+                self.preview_canvas.create_image(gx, gy, anchor=tk.NW, image=img)
 
             px += g["dx"] * scale
 
