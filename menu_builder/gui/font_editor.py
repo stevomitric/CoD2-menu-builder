@@ -307,17 +307,27 @@ class FontEditor(tk.Toplevel):
         if not result["confirmed"]:
             return
 
-        font_path = Path(result["font_path"])
+        import shutil
 
-        # If user provided a PNG, copy it next to the font file if needed
+        font_src = Path(result["font_path"])
+        font_name = font_src.name
+
+        # Copy font file into fonts/custom/
+        _CUSTOM_FONTS_DIR.mkdir(parents=True, exist_ok=True)
+        font_dst = _CUSTOM_FONTS_DIR / font_name
+        shutil.copy2(font_src, font_dst)
+
+        # Copy PNG atlas into fonts/custom/
         if result["png_path"]:
-            import shutil
             png_src = Path(result["png_path"])
-            png_dst = font_path.parent / png_src.name
-            if png_src != png_dst:
-                shutil.copy2(png_src, png_dst)
+            shutil.copy2(png_src, _CUSTOM_FONTS_DIR / png_src.name)
 
-        self._load_font(font_path)
+        # Refresh font list, select the new font, and load it
+        self._refresh_font_list()
+        display_name = f"[C] {font_name}"
+        self._font_combo_var.set(display_name)
+        self._load_font(font_dst)
+        self._status_var.set(f"Opened: {font_name} (saved to fonts/custom/)")
 
     def _import_ttf(self):
         """Open import dialog: font file + glyph map PNG + pixel height."""
