@@ -7,7 +7,6 @@ from tkinter.ttk import *  # noqa: F403
 from typing import Callable
 
 from menu_builder.models import ItemDef, MenuDef, Color
-from menu_builder.font_renderer import font_cache
 
 # Canvas draws at 1:1 with the game's 640x480 coordinate space.
 CANVAS_W = 640
@@ -103,10 +102,6 @@ class MenuCanvas(Frame):
         self._item_ids: dict[int, ItemDef] = {}  # canvas id -> ItemDef
         self._drag_data: dict = {}
         self._resize_data: dict = {}
-        self._text_images: list[tk.PhotoImage] = []  # keep refs to prevent GC
-
-        # Initialize font cache
-        font_cache.init(parent.winfo_toplevel())
 
         # tk.Canvas has no ttk equivalent
         self.canvas = tk.Canvas(
@@ -170,7 +165,6 @@ class MenuCanvas(Frame):
     def _redraw(self):
         self.canvas.delete("all")
         self._item_ids.clear()
-        self._text_images.clear()
         self._calc_transform()
 
         # Draw 640x480 blueprint area
@@ -282,36 +276,18 @@ class MenuCanvas(Frame):
             label = item.text or item.name
             if label.startswith("@"):
                 label = label[1:]
-
-            # Try bitmap font rendering first
-            rendered = False
-            if not hidden:
-                text_img = font_cache.render_text(
-                    label,
-                    textfont=item.textfont,
-                    scale=self._scale * (item.textscale or 0.25) / 0.25,
-                )
-                if text_img:
-                    self._text_images.append(text_img)
-                    cx = (x0 + x1) / 2
-                    cy = (y0 + y1) / 2
-                    text_id = self.canvas.create_image(cx, cy, image=text_img, anchor=tk.CENTER)
-                    self._item_ids[text_id] = item
-                    rendered = True
-
-            # Fallback: tkinter text
-            if not rendered:
-                tc = "#556677" if hidden else _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
-                cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-                font_size = max(8, int(10 * self._scale))
-                wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
-                text_id = self.canvas.create_text(
-                    cx, cy, text=label, fill=tc,
-                    font=("TkDefaultFont", font_size),
-                    anchor=tk.CENTER,
-                    width=wrap_width,
-                )
-                self._item_ids[text_id] = item
+            tc = "#556677" if hidden else _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
+            cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+            font_size = max(8, int(10 * self._scale))
+            # Autowrapped: constrain text width to item rect
+            wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
+            text_id = self.canvas.create_text(
+                cx, cy, text=label, fill=tc,
+                font=("TkDefaultFont", font_size),
+                anchor=tk.CENTER,
+                width=wrap_width,
+            )
+            self._item_ids[text_id] = item
 
     def _draw_selection(self, item: ItemDef):
         ix0, iy0, ix1, iy1 = self._item_bounds(item)
