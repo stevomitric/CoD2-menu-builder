@@ -10,7 +10,9 @@ from pathlib import Path
 
 # Project root (fonts/ directory lives here)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-_FONTS_DIR = _PROJECT_ROOT / "fonts"
+_DEFAULT_FONTS_DIR = _PROJECT_ROOT / "fonts" / "default"
+_CUSTOM_FONTS_DIR = _PROJECT_ROOT / "fonts" / "custom"
+_ALL_FONT_DIRS = [_DEFAULT_FONTS_DIR, _CUSTOM_FONTS_DIR]
 
 
 def _glyph_rect(glyph: dict, tex_w: int, tex_h: int) -> tuple[int, int, int, int]:
@@ -62,12 +64,12 @@ class FontEditor(tk.Toplevel):
         select_frame.pack(fill=tk.X, padx=8, pady=(4, 0))
         Label(select_frame, text="Font:").pack(side=tk.LEFT)
 
-        stock_fonts = self._list_stock_fonts()
-        default_font = "normalFont" if "normalFont" in stock_fonts else (stock_fonts[0] if stock_fonts else "")
+        all_fonts = self._list_all_fonts()
+        default_font = "normalFont" if "normalFont" in all_fonts else (all_fonts[0] if all_fonts else "")
         self._font_combo_var = tk.StringVar(value=default_font)
         self._font_combo = Combobox(
             select_frame, textvariable=self._font_combo_var,
-            values=stock_fonts, state="readonly", width=20,
+            values=all_fonts, state="readonly", width=30,
         )
         self._font_combo.pack(side=tk.LEFT, padx=4)
         self._font_combo.bind("<<ComboboxSelected>>", self._on_font_combo_changed)
@@ -186,29 +188,51 @@ class FontEditor(tk.Toplevel):
 
         # Load default font
         if default_font:
-            self._load_stock_font(default_font)
+            self._load_font_by_name(default_font)
 
     # ------------------------------------------------------------------
     # Stock fonts
     # ------------------------------------------------------------------
 
-    def _list_stock_fonts(self) -> list[str]:
-        if not _FONTS_DIR.is_dir():
-            return []
-        return sorted(
-            f.name for f in _FONTS_DIR.iterdir()
-            if f.is_file() and f.suffix not in (".tga", ".png")
-        )
+    def _list_all_fonts(self) -> list[str]:
+        """List all fonts from default/ and custom/ directories.
 
-    def _load_stock_font(self, name: str):
-        path = _FONTS_DIR / name
-        if path.exists():
+        Custom fonts are prefixed with [C] in the display list.
+        """
+        fonts = []
+        if _DEFAULT_FONTS_DIR.is_dir():
+            for f in sorted(_DEFAULT_FONTS_DIR.iterdir()):
+                if f.is_file() and f.suffix not in (".tga", ".png"):
+                    fonts.append(f.name)
+        if _CUSTOM_FONTS_DIR.is_dir():
+            for f in sorted(_CUSTOM_FONTS_DIR.iterdir()):
+                if f.is_file() and f.suffix not in (".tga", ".png"):
+                    fonts.append(f"[C] {f.name}")
+        return fonts
+
+    def _resolve_font_path(self, display_name: str) -> Path | None:
+        """Resolve a display name (possibly [C] prefixed) to a file path."""
+        if display_name.startswith("[C] "):
+            name = display_name[4:]
+            path = _CUSTOM_FONTS_DIR / name
+        else:
+            path = _DEFAULT_FONTS_DIR / display_name
+        return path if path.exists() else None
+
+    def _load_font_by_name(self, display_name: str):
+        path = self._resolve_font_path(display_name)
+        if path:
             self._load_font(path)
 
     def _on_font_combo_changed(self, event):
         name = self._font_combo_var.get()
         if name:
-            self._load_stock_font(name)
+            self._load_font_by_name(name)
+
+    def _refresh_font_list(self):
+        """Refresh the font combo with current default + custom fonts."""
+        fonts = self._list_all_fonts()
+        self._font_combo["values"] = fonts
 
     # ------------------------------------------------------------------
     # File operations
@@ -223,43 +247,85 @@ class FontEditor(tk.Toplevel):
             self._load_font(Path(path))
 
     def _import_ttf(self):
-        ttf_path = filedialog.askopenfilename(
-            title="Import TTF/OTF Font",
-            filetypes=[("Font files", "*.ttf *.otf"), ("TrueType", "*.ttf"), ("OpenType", "*.otf"), ("All files", "*.*")],
-        )
-        if not ttf_path:
-            return
+        """Open import dialog: font file + glyph map PNG + pixel height."""
+        dlg = tk.Toplevel(self)
+        dlg.title("Import Font")
+        dlg.geometry("450x200")
+        dlg.resizable(False, False)
+        dlg.transient(self)
+        dlg.grab_set()
 
-        # Ask for pixel height
-        size_win = tk.Toplevel(self)
-        size_win.title("Font Size")
-        size_win.geometry("300x120")
-        size_win.resizable(False, False)
-        size_win.transient(self)
-        size_win.grab_set()
+        result = {"confirmed": False, "font_path": "", "png_path": "", "size": "16"}
 
-        Label(size_win, text="Pixel height for the CoD2 font:").pack(padx=10, pady=(10, 5))
+        # Font file row
+        row1 = Frame(dlg)
+        row1.pack(fill=tk.X, padx=10, pady=(10, 2))
+        Label(row1, text="Font file:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        font_var = tk.StringVar()
+        Entry(row1, textvariable=font_var, width=30, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        def _browse_font():
+            p = filedialog.askopenfilename(
+                parent=dlg, title="Select TTF/OTF font",
+                filetypes=[("Font files", "*.ttf *.otf"), ("All files", "*.*")],
+            )
+            if p:
+                font_var.set(p)
+
+        Button(row1, text="Browse", command=_browse_font).pack(side=tk.LEFT, padx=4)
+
+        # Glyph map PNG row
+        row2 = Frame(dlg)
+        row2.pack(fill=tk.X, padx=10, pady=2)
+        Label(row2, text="Glyph map:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        png_var = tk.StringVar()
+        Entry(row2, textvariable=png_var, width=30, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        def _browse_png():
+            p = filedialog.askopenfilename(
+                parent=dlg, title="Select glyph atlas PNG",
+                filetypes=[("PNG images", "*.png"), ("All files", "*.*")],
+            )
+            if p:
+                png_var.set(p)
+
+        Button(row2, text="Browse", command=_browse_png).pack(side=tk.LEFT, padx=4)
+
+        # Note about glyph map
+        Label(dlg, text="Glyph map is the atlas PNG containing all character images",
+              foreground="#888888", font=("TkDefaultFont", 8)).pack(padx=10, anchor=tk.W)
+
+        # Pixel height row
+        row3 = Frame(dlg)
+        row3.pack(fill=tk.X, padx=10, pady=2)
+        Label(row3, text="Pixel height:", width=12, anchor=tk.W).pack(side=tk.LEFT)
         size_var = tk.StringVar(value="16")
-        size_entry = Entry(size_win, textvariable=size_var, width=10)
-        size_entry.pack(pady=5)
-        size_entry.focus_set()
+        Spinbox(row3, textvariable=size_var, from_=6, to=72, width=5).pack(side=tk.LEFT)
 
-        result = {"confirmed": False}
+        # Buttons
+        btn_frame = Frame(dlg)
+        btn_frame.pack(pady=10)
 
-        def _on_ok(event=None):
+        def _on_import():
+            if not font_var.get():
+                messagebox.showerror("Error", "Please select a font file.", parent=dlg)
+                return
             result["confirmed"] = True
-            size_win.destroy()
+            result["font_path"] = font_var.get()
+            result["png_path"] = png_var.get()
+            result["size"] = size_var.get()
+            dlg.destroy()
 
-        size_entry.bind("<Return>", _on_ok)
-        Button(size_win, text="Import", command=_on_ok).pack(pady=5)
+        Button(btn_frame, text="Import", command=_on_import).pack(side=tk.LEFT, padx=4)
+        Button(btn_frame, text="Cancel", command=dlg.destroy).pack(side=tk.LEFT, padx=4)
 
-        self.wait_window(size_win)
+        self.wait_window(dlg)
 
         if not result["confirmed"]:
             return
 
         try:
-            pixel_height = int(size_var.get())
+            pixel_height = int(result["size"])
         except ValueError:
             messagebox.showerror("Error", "Invalid pixel height.")
             return
@@ -268,25 +334,35 @@ class FontEditor(tk.Toplevel):
             messagebox.showerror("Error", "Pixel height must be between 6 and 72.")
             return
 
-        # Ask for output directory
-        output_dir = filedialog.askdirectory(title="Select output directory")
-        if not output_dir:
-            return
+        ttf_path = Path(result["font_path"])
+        png_path = result["png_path"]
+
+        # Ensure custom dir exists
+        _CUSTOM_FONTS_DIR.mkdir(parents=True, exist_ok=True)
 
         try:
             from menu_builder.font_import import import_ttf
-            stem = Path(ttf_path).stem
-            font_path, png_path = import_ttf(
-                ttf_path=Path(ttf_path),
+            stem = ttf_path.stem
+            font_out, png_out = import_ttf(
+                ttf_path=ttf_path,
                 pixel_height=pixel_height,
-                output_font_path=Path(output_dir) / stem,
-                output_png_path=Path(output_dir) / f"{stem}_atlas.png",
+                output_font_path=_CUSTOM_FONTS_DIR / stem,
+                output_png_path=_CUSTOM_FONTS_DIR / f"{stem}_atlas.png",
             )
-            self._status_var.set(f"Imported: {font_path.name} + {png_path.name}")
-            messagebox.showinfo("Import Complete", f"Saved to:\n{font_path}\n{png_path}")
 
-            # Load the newly created font
-            self._load_font(font_path)
+            # If user provided a custom glyph map PNG, copy it over the generated one
+            if png_path:
+                import shutil
+                shutil.copy2(png_path, png_out)
+
+            self._status_var.set(f"Imported: {font_out.name}")
+            messagebox.showinfo("Import Complete", f"Font saved to fonts/custom/\n{font_out.name}\n{png_out.name}")
+
+            # Refresh font list and load the new font
+            self._refresh_font_list()
+            display_name = f"[C] {stem}"
+            self._font_combo_var.set(display_name)
+            self._load_font(font_out)
         except ImportError:
             messagebox.showerror("Error", "Pillow package required.\nInstall with: pip install Pillow")
         except Exception as e:
@@ -305,8 +381,8 @@ class FontEditor(tk.Toplevel):
         material = self._font_data["materialName"]
         tex_name = material.rsplit("/", 1)[-1] if "/" in material else material
         atlas_path = None
-        font_dir = self._font_data["path"].parent if "path" in self._font_data else _FONTS_DIR
-        for search_dir in [font_dir, _FONTS_DIR]:
+        font_dir = self._font_data["path"].parent if "path" in self._font_data else _DEFAULT_FONTS_DIR
+        for search_dir in [font_dir] + _ALL_FONT_DIRS:
             candidate = search_dir / f"{tex_name}.png"
             if candidate.exists():
                 atlas_path = candidate
@@ -388,7 +464,7 @@ class FontEditor(tk.Toplevel):
         material = self._font_data["materialName"]
         tex_name = material.rsplit("/", 1)[-1] if "/" in material else material
         font_dir = self._font_data["path"].parent
-        for search_dir in [font_dir, _FONTS_DIR]:
+        for search_dir in [font_dir] + _ALL_FONT_DIRS:
             candidate = search_dir / f"{tex_name}.png"
             if candidate.exists():
                 return candidate
@@ -464,17 +540,13 @@ class FontEditor(tk.Toplevel):
         self._atlas_h = 0
 
         tex_name = material_name.rsplit("/", 1)[-1] if "/" in material_name else material_name
-        # Prefer PNG (IWI-converted, correct UV mapping) over TGA (source asset)
-        for ext in (".png", ".tga"):
-            for search_dir in [font_dir, _FONTS_DIR]:
-                img_path = search_dir / f"{tex_name}{ext}"
-                if img_path.exists():
-                    if ext == ".png":
-                        self._atlas_photo = tk.PhotoImage(file=str(img_path), master=self)
-                        self._atlas_w = self._atlas_photo.width()
-                        self._atlas_h = self._atlas_photo.height()
-                    # Skip TGA for now — UV mapping doesn't match
-                    return
+        for search_dir in [font_dir] + _ALL_FONT_DIRS:
+            img_path = search_dir / f"{tex_name}.png"
+            if img_path.exists():
+                self._atlas_photo = tk.PhotoImage(file=str(img_path), master=self)
+                self._atlas_w = self._atlas_photo.width()
+                self._atlas_h = self._atlas_photo.height()
+                return
 
     # ------------------------------------------------------------------
     # Atlas rendering
