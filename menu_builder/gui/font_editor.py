@@ -202,11 +202,11 @@ class FontEditor(tk.Toplevel):
         fonts = []
         if _DEFAULT_FONTS_DIR.is_dir():
             for f in sorted(_DEFAULT_FONTS_DIR.iterdir()):
-                if f.is_file() and f.suffix not in (".tga", ".png"):
+                if f.is_file() and f.suffix not in (".tga", ".png") and not f.name.startswith("."):
                     fonts.append(f.name)
         if _CUSTOM_FONTS_DIR.is_dir():
             for f in sorted(_CUSTOM_FONTS_DIR.iterdir()):
-                if f.is_file() and f.suffix not in (".tga", ".png"):
+                if f.is_file() and f.suffix not in (".tga", ".png") and not f.name.startswith("."):
                     fonts.append(f"[C] {f.name}")
         return fonts
 
@@ -239,12 +239,85 @@ class FontEditor(tk.Toplevel):
     # ------------------------------------------------------------------
 
     def _open_font(self):
-        path = filedialog.askopenfilename(
-            title="Open CoD2 Font File",
-            filetypes=[("Font files", "*"), ("All files", "*.*")],
-        )
-        if path:
-            self._load_font(Path(path))
+        """Open a CoD2 font with a dialog for font file + glyph map PNG."""
+        dlg = tk.Toplevel(self)
+        dlg.title("Open Font")
+        dlg.geometry("450x160")
+        dlg.resizable(False, False)
+        dlg.transient(self)
+        dlg.grab_set()
+
+        result = {"confirmed": False, "font_path": "", "png_path": ""}
+
+        # Font file row
+        row1 = Frame(dlg)
+        row1.pack(fill=tk.X, padx=10, pady=(10, 2))
+        Label(row1, text="Font file:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        font_var = tk.StringVar()
+        Entry(row1, textvariable=font_var, width=30, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        def _browse_font():
+            p = filedialog.askopenfilename(
+                parent=dlg, title="Select CoD2 font file",
+                filetypes=[("All files", "*.*")],
+            )
+            if p:
+                font_var.set(p)
+
+        Button(row1, text="Browse", command=_browse_font).pack(side=tk.LEFT, padx=4)
+
+        # Glyph map PNG row
+        row2 = Frame(dlg)
+        row2.pack(fill=tk.X, padx=10, pady=2)
+        Label(row2, text="Glyph map:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        png_var = tk.StringVar()
+        Entry(row2, textvariable=png_var, width=30, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        def _browse_png():
+            p = filedialog.askopenfilename(
+                parent=dlg, title="Select glyph atlas PNG",
+                filetypes=[("PNG images", "*.png"), ("All files", "*.*")],
+            )
+            if p:
+                png_var.set(p)
+
+        Button(row2, text="Browse", command=_browse_png).pack(side=tk.LEFT, padx=4)
+
+        Label(dlg, text="Glyph map is the atlas PNG with all character images",
+              foreground="#888888", font=("TkDefaultFont", 8)).pack(padx=10, anchor=tk.W)
+
+        # Buttons
+        btn_frame = Frame(dlg)
+        btn_frame.pack(pady=10)
+
+        def _on_open():
+            if not font_var.get():
+                messagebox.showerror("Error", "Please select a font file.", parent=dlg)
+                return
+            result["confirmed"] = True
+            result["font_path"] = font_var.get()
+            result["png_path"] = png_var.get()
+            dlg.destroy()
+
+        Button(btn_frame, text="Open", command=_on_open).pack(side=tk.LEFT, padx=4)
+        Button(btn_frame, text="Cancel", command=dlg.destroy).pack(side=tk.LEFT, padx=4)
+
+        self.wait_window(dlg)
+
+        if not result["confirmed"]:
+            return
+
+        font_path = Path(result["font_path"])
+
+        # If user provided a PNG, copy it next to the font file if needed
+        if result["png_path"]:
+            import shutil
+            png_src = Path(result["png_path"])
+            png_dst = font_path.parent / png_src.name
+            if png_src != png_dst:
+                shutil.copy2(png_src, png_dst)
+
+        self._load_font(font_path)
 
     def _import_ttf(self):
         """Open import dialog: font file + glyph map PNG + pixel height."""
