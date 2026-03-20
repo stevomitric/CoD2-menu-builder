@@ -7,6 +7,7 @@ from tkinter.ttk import *  # noqa: F403
 from typing import Callable
 
 from menu_builder.models import ItemDef, MenuDef, Color
+from menu_builder.font_metrics import metrics_cache
 
 # Canvas draws at 1:1 with the game's 640x480 coordinate space.
 CANVAS_W = 640
@@ -277,9 +278,16 @@ class MenuCanvas(Frame):
             if label.startswith("@"):
                 label = label[1:]
             tc = "#556677" if hidden else _color_to_hex(item.forecolor, _text_color_for_bg(item.backcolor))
+
+            # Use CoD2 font metrics for sizing
+            metrics = metrics_cache.get(item.textfont)
+            if metrics:
+                game_px = metrics.measure(label, item.textscale)
+                font_size = max(6, int(game_px * self._scale / max(1, len(label)) * 1.6))
+            else:
+                font_size = max(8, int(10 * self._scale))
+
             cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-            font_size = max(8, int(10 * self._scale))
-            # Autowrapped: constrain text width to item rect
             wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
             text_id = self.canvas.create_text(
                 cx, cy, text=label, fill=tc,
