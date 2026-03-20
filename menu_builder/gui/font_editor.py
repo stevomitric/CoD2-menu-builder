@@ -330,85 +330,44 @@ class FontEditor(tk.Toplevel):
         self._status_var.set(f"Opened: {font_name} (saved to fonts/custom/)")
 
     def _import_ttf(self):
-        """Open import dialog: font file + glyph map PNG + pixel height."""
-        dlg = tk.Toplevel(self)
-        dlg.title("Import Font")
-        dlg.geometry("450x200")
-        dlg.resizable(False, False)
-        dlg.transient(self)
-        dlg.grab_set()
+        """Import a TTF/OTF font — converts to CoD2 format and saves to fonts/custom/."""
+        ttf_path = filedialog.askopenfilename(
+            title="Select TTF/OTF Font",
+            filetypes=[("Font files", "*.ttf *.otf"), ("TrueType", "*.ttf"), ("OpenType", "*.otf"), ("All files", "*.*")],
+        )
+        if not ttf_path:
+            return
 
-        result = {"confirmed": False, "font_path": "", "png_path": "", "size": "16"}
+        # Ask for pixel height
+        size_win = tk.Toplevel(self)
+        size_win.title("Font Size")
+        size_win.geometry("300x120")
+        size_win.resizable(False, False)
+        size_win.transient(self)
+        size_win.grab_set()
 
-        # Font file row
-        row1 = Frame(dlg)
-        row1.pack(fill=tk.X, padx=10, pady=(10, 2))
-        Label(row1, text="Font file:", width=12, anchor=tk.W).pack(side=tk.LEFT)
-        font_var = tk.StringVar()
-        Entry(row1, textvariable=font_var, width=30, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        def _browse_font():
-            p = filedialog.askopenfilename(
-                parent=dlg, title="Select TTF/OTF font",
-                filetypes=[("Font files", "*.ttf *.otf"), ("All files", "*.*")],
-            )
-            if p:
-                font_var.set(p)
-
-        Button(row1, text="Browse", command=_browse_font).pack(side=tk.LEFT, padx=4)
-
-        # Glyph map PNG row
-        row2 = Frame(dlg)
-        row2.pack(fill=tk.X, padx=10, pady=2)
-        Label(row2, text="Glyph map:", width=12, anchor=tk.W).pack(side=tk.LEFT)
-        png_var = tk.StringVar()
-        Entry(row2, textvariable=png_var, width=30, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        def _browse_png():
-            p = filedialog.askopenfilename(
-                parent=dlg, title="Select glyph atlas PNG",
-                filetypes=[("PNG images", "*.png"), ("All files", "*.*")],
-            )
-            if p:
-                png_var.set(p)
-
-        Button(row2, text="Browse", command=_browse_png).pack(side=tk.LEFT, padx=4)
-
-        # Note about glyph map
-        Label(dlg, text="Glyph map is the atlas PNG containing all character images",
-              foreground="#888888", font=("TkDefaultFont", 8)).pack(padx=10, anchor=tk.W)
-
-        # Pixel height row
-        row3 = Frame(dlg)
-        row3.pack(fill=tk.X, padx=10, pady=2)
-        Label(row3, text="Pixel height:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        Label(size_win, text="Pixel height for the CoD2 font:").pack(padx=10, pady=(10, 5))
         size_var = tk.StringVar(value="16")
-        Spinbox(row3, textvariable=size_var, from_=6, to=72, width=5).pack(side=tk.LEFT)
+        size_entry = Entry(size_win, textvariable=size_var, width=10)
+        size_entry.pack(pady=5)
+        size_entry.focus_set()
 
-        # Buttons
-        btn_frame = Frame(dlg)
-        btn_frame.pack(pady=10)
+        result = {"confirmed": False}
 
-        def _on_import():
-            if not font_var.get():
-                messagebox.showerror("Error", "Please select a font file.", parent=dlg)
-                return
+        def _on_ok(event=None):
             result["confirmed"] = True
-            result["font_path"] = font_var.get()
-            result["png_path"] = png_var.get()
-            result["size"] = size_var.get()
-            dlg.destroy()
+            size_win.destroy()
 
-        Button(btn_frame, text="Import", command=_on_import).pack(side=tk.LEFT, padx=4)
-        Button(btn_frame, text="Cancel", command=dlg.destroy).pack(side=tk.LEFT, padx=4)
+        size_entry.bind("<Return>", _on_ok)
+        Button(size_win, text="Import", command=_on_ok).pack(pady=5)
 
-        self.wait_window(dlg)
+        self.wait_window(size_win)
 
         if not result["confirmed"]:
             return
 
         try:
-            pixel_height = int(result["size"])
+            pixel_height = int(size_var.get())
         except ValueError:
             messagebox.showerror("Error", "Invalid pixel height.")
             return
@@ -417,26 +376,17 @@ class FontEditor(tk.Toplevel):
             messagebox.showerror("Error", "Pixel height must be between 6 and 72.")
             return
 
-        ttf_path = Path(result["font_path"])
-        png_path = result["png_path"]
-
-        # Ensure custom dir exists
         _CUSTOM_FONTS_DIR.mkdir(parents=True, exist_ok=True)
 
         try:
             from menu_builder.font_import import import_ttf
-            stem = ttf_path.stem
+            stem = Path(ttf_path).stem
             font_out, png_out = import_ttf(
-                ttf_path=ttf_path,
+                ttf_path=Path(ttf_path),
                 pixel_height=pixel_height,
                 output_font_path=_CUSTOM_FONTS_DIR / stem,
                 output_png_path=_CUSTOM_FONTS_DIR / f"{stem}_atlas.png",
             )
-
-            # If user provided a custom glyph map PNG, copy it over the generated one
-            if png_path:
-                import shutil
-                shutil.copy2(png_path, png_out)
 
             self._status_var.set(f"Imported: {font_out.name}")
             messagebox.showinfo("Import Complete", f"Font saved to fonts/custom/\n{font_out.name}\n{png_out.name}")
