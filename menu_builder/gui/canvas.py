@@ -287,12 +287,25 @@ class MenuCanvas(Frame):
             else:
                 font_size = max(8, int(10 * self._scale))
 
-            cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+            # Text alignment: 0=LEFT, 1=CENTER, 2=RIGHT
+            align = item.textalign
+            padding = 4 * self._scale
+            if align == 0:  # LEFT
+                tx = x0 + padding
+                anchor = tk.W
+            elif align == 2:  # RIGHT
+                tx = x1 - padding
+                anchor = tk.E
+            else:  # CENTER (default)
+                tx = (x0 + x1) / 2
+                anchor = tk.CENTER
+
+            cy = (y0 + y1) / 2
             wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
             text_id = self.canvas.create_text(
-                cx, cy, text=label, fill=tc,
+                tx, cy, text=label, fill=tc,
                 font=("TkDefaultFont", font_size),
-                anchor=tk.CENTER,
+                anchor=anchor,
                 width=wrap_width,
             )
             self._item_ids[text_id] = item

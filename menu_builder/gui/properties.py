@@ -194,6 +194,16 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
+    def _add_decimal_spinbox(self, parent: Frame, label: str, key: str, value: float, from_: float, to: float, increment: float) -> tk.StringVar:
+        frame = Frame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=1)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        var = tk.StringVar(value=f"{value:.2f}")
+        Spinbox(frame, textvariable=var, from_=from_, to=to, increment=increment, width=7, format="%.2f").pack(side=tk.LEFT)
+        var.trace_add("write", lambda *_: self._on_change())
+        self._vars[key] = var
+        return var
+
     def _add_color(self, parent: Frame, label: str, key: str, color: Color | None, default_alpha: float = 0.0) -> tuple[tk.StringVar, ...]:
         frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
@@ -255,7 +265,7 @@ class PropertiesPanel(Frame):
 
         self._add_section(tab, "Content")
         self._add_entry(tab, "Text", "text", item.text or "")
-        self._add_entry(tab, "Scale", "textscale", str(item.textscale) if item.textscale is not None else "")
+        self._add_decimal_spinbox(tab, "Scale", "textscale", item.textscale or 0.25, 0.1, 1.0, 0.05)
 
         self._add_section(tab, "Alignment")
         self._add_combo(tab, "Align", "textalign", TEXT_ALIGNS, item.textalign)
@@ -481,7 +491,7 @@ class PropertiesPanel(Frame):
         self._set_var("rect_w", str(int(item.rect.w)))
         self._set_var("rect_h", str(int(item.rect.h)))
         self._set_var("text", item.text or "")
-        self._set_var("textscale", str(item.textscale) if item.textscale is not None else "")
+        self._set_var("textscale", f"{item.textscale:.2f}" if item.textscale is not None else "0.25")
         self._set_var("textalignx", str(item.textalignx) if item.textalignx is not None else "")
         self._set_var("textaligny", str(item.textaligny) if item.textaligny is not None else "")
         self._set_color_vars("forecolor", item.forecolor)
