@@ -6,6 +6,8 @@ import tkinter as tk
 from tkinter.ttk import *  # noqa: F403
 from typing import Callable
 
+from pathlib import Path
+
 from menu_builder.models import Color, ItemDef, MenuDef, Rect
 
 
@@ -44,6 +46,59 @@ TEXT_STYLES = [
 ]
 
 _TYPE_DISPLAY = {t: n for t, n in ITEM_TYPES}
+
+# Font directories
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_FONTS_DIR = _PROJECT_ROOT / "fonts" / "default"
+_CUSTOM_FONTS_DIR = _PROJECT_ROOT / "fonts" / "custom"
+
+# Standard CoD2 font constants mapped to file names
+_FONT_CONSTANTS = {
+    "UI_FONT_DEFAULT": "smallFont",
+    "UI_FONT_NORMAL": "normalFont",
+    "UI_FONT_BIG": "bigFont",
+}
+_FONT_NAME_TO_CONST = {v: k for k, v in _FONT_CONSTANTS.items()}
+
+
+def _list_available_fonts() -> list[str]:
+    """List available fonts for the font selector combo.
+
+    Returns display names like: UI_FONT_NORMAL, UI_FONT_BIG, [C] myFont
+    """
+    fonts = []
+    # Standard constants (always available)
+    fonts.extend(sorted(_FONT_CONSTANTS.keys()))
+    # Default fonts not covered by constants
+    if _DEFAULT_FONTS_DIR.is_dir():
+        for f in sorted(_DEFAULT_FONTS_DIR.iterdir()):
+            if f.is_file() and f.suffix not in (".tga", ".png") and not f.name.startswith("."):
+                if f.name not in _FONT_CONSTANTS.values():
+                    fonts.append(f.name)
+    # Custom fonts
+    if _CUSTOM_FONTS_DIR.is_dir():
+        for f in sorted(_CUSTOM_FONTS_DIR.iterdir()):
+            if f.is_file() and f.suffix not in (".tga", ".png") and not f.name.startswith("."):
+                fonts.append(f"[C] {f.name}")
+    return fonts
+
+
+def _textfont_to_display(textfont: str | None) -> str:
+    """Convert a textfont value to its display name."""
+    if not textfont:
+        return "UI_FONT_NORMAL"
+    if textfont in _FONT_CONSTANTS:
+        return textfont
+    return textfont
+
+
+def _display_to_textfont(display: str) -> str | None:
+    """Convert a display name back to a textfont value."""
+    if display in _FONT_CONSTANTS:
+        return display
+    if display.startswith("[C] "):
+        return display[4:]
+    return display if display else None
 
 
 def _type_display_name(type_id: int | None) -> str:
@@ -194,6 +249,18 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
+    def _add_font_combo(self, parent: Frame, label: str, key: str, current: str | None):
+        frame = Frame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=1)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        fonts = _list_available_fonts()
+        var = tk.StringVar(value=_textfont_to_display(current))
+        Combobox(frame, textvariable=var, values=fonts, state="readonly", width=20).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
+        var.trace_add("write", lambda *_: self._on_change())
+        self._vars[key] = var
+
     def _add_decimal_spinbox(self, parent: Frame, label: str, key: str, value: float, from_: float, to: float, increment: float) -> tk.StringVar:
         frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
@@ -265,6 +332,9 @@ class PropertiesPanel(Frame):
 
         self._add_section(tab, "Content")
         self._add_entry(tab, "Text", "text", item.text or "")
+
+        self._add_section(tab, "Font")
+        self._add_font_combo(tab, "Font", "textfont", item.textfont)
         self._add_decimal_spinbox(tab, "Scale", "textscale", item.textscale or 0.25, 0.1, 1.0, 0.05)
 
         self._add_section(tab, "Alignment")
@@ -422,6 +492,7 @@ class PropertiesPanel(Frame):
         item.bordercolor = self._get_color("bordercolor")
 
         item.text = self._get_str_or_none("text")
+        item.textfont = _display_to_textfont(self._get_str("textfont"))
         item.textscale = self._get_float_or_none("textscale")
         item.textalign = self._get_combo_int("textalign", TEXT_ALIGNS)
         item.textalignx = self._get_int("textalignx") if self._get_str("textalignx") else None
