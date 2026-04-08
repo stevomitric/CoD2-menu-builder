@@ -126,6 +126,7 @@ class ImageAssets(tk.Toplevel):
     def _show_preview(self, path: Path):
         self.preview_canvas.delete("all")
         self._preview_photo = None
+        self._preview_display = None  # keep ref for subsampled image
 
         try:
             self._preview_photo = tk.PhotoImage(file=str(path), master=self)
@@ -134,15 +135,18 @@ class ImageAssets(tk.Toplevel):
 
             self._info_var.set(f"{path.name}  —  {w} x {h}  —  {path.stat().st_size // 1024} KB")
 
-            # Fit image to canvas
-            canvas_w = self.preview_canvas.winfo_width()
-            canvas_h = self.preview_canvas.winfo_height()
-            if canvas_w > 10 and canvas_h > 10:
-                cx, cy = canvas_w // 2, canvas_h // 2
-            else:
-                cx, cy = 200, 200
+            canvas_w = max(self.preview_canvas.winfo_width(), 100)
+            canvas_h = max(self.preview_canvas.winfo_height(), 100)
 
-            self.preview_canvas.create_image(cx, cy, image=self._preview_photo, anchor=tk.CENTER)
+            # Shrink to fit if image is larger than canvas
+            display = self._preview_photo
+            if w > canvas_w or h > canvas_h:
+                factor = max(1, int(max(w / canvas_w, h / canvas_h) + 0.99))
+                display = self._preview_photo.subsample(factor, factor)
+
+            self._preview_display = display
+            cx, cy = canvas_w // 2, canvas_h // 2
+            self.preview_canvas.create_image(cx, cy, image=display, anchor=tk.CENTER)
 
         except tk.TclError:
             # tkinter PhotoImage only supports PNG/GIF natively, not JPG
