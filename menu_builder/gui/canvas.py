@@ -223,15 +223,20 @@ class MenuCanvas(Frame):
         type_style = _TYPE_STYLES.get(item.type, _TYPE_STYLES[None])
         type_badge, type_outline = type_style
 
-        # Only FILLED (1) renders backcolor; EMPTY/SHADER/DVAR_SHADER render as empty
+        # Render based on style
         is_filled = item.style == 1
+        is_shader = item.style == 3 and item.background
         fill = _color_to_hex(item.backcolor, "#333333") if is_filled else ""
 
-        # Draw the item rectangle (thin type-colored outline as editor hint)
         if hidden:
             rect_id = self.canvas.create_rectangle(
                 x0, y0, x1, y1, fill=fill if is_filled else "",
                 outline="#556677", dash=(4, 4), stipple="gray25" if is_filled else "",
+            )
+        elif is_shader:
+            # Shader/image background — light tinted fill to indicate image
+            rect_id = self.canvas.create_rectangle(
+                x0, y0, x1, y1, fill="#2a3545", outline="#5588aa", width=1,
             )
         elif is_filled:
             rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline=type_outline, width=1)
@@ -239,6 +244,15 @@ class MenuCanvas(Frame):
             rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, fill="", outline="#7ab0d4", dash=(3, 2))
 
         self._item_ids[rect_id] = item
+
+        # Shader image label (bottom-left, small)
+        if is_shader and not hidden:
+            img_label = f"[img: {item.background}]"
+            self.canvas.create_text(
+                x0 + 3, y1 - 3, text=img_label, fill="#5588aa",
+                font=("TkDefaultFont", max(6, int(7 * self._scale))),
+                anchor=tk.SW,
+            )
 
         # Border (drawn on top of fill when border is enabled)
         has_border = item.border is not None and item.border > 0

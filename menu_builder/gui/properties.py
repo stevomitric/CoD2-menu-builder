@@ -83,6 +83,19 @@ def _list_available_fonts() -> list[str]:
     return fonts
 
 
+_IMAGES_DIR = _PROJECT_ROOT / "images"
+
+
+def _list_available_images() -> list[str]:
+    """List image names from the images/ directory (without extension)."""
+    images = ["(none)"]
+    if _IMAGES_DIR.is_dir():
+        for f in sorted(_IMAGES_DIR.iterdir()):
+            if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg") and not f.name.startswith("."):
+                images.append(f.stem)
+    return images
+
+
 def _textfont_to_display(textfont: str | None) -> str:
     """Convert a textfont value to its display name."""
     if not textfont:
@@ -249,6 +262,19 @@ class PropertiesPanel(Frame):
         self._vars[key] = var
         return var
 
+    def _add_image_combo(self, parent: Frame, label: str, key: str, current: str | None):
+        frame = Frame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=1)
+        Label(frame, text=label, width=12).pack(side=tk.LEFT)
+        images = _list_available_images()
+        display = current if current and current in images else "(none)"
+        var = tk.StringVar(value=display)
+        Combobox(frame, textvariable=var, values=images, state="readonly", width=20).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
+        var.trace_add("write", lambda *_: self._on_change())
+        self._vars[key] = var
+
     def _add_font_combo(self, parent: Frame, label: str, key: str, current: str | None):
         frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
@@ -316,7 +342,7 @@ class PropertiesPanel(Frame):
 
         self._add_section(tab, "Window")
         self._add_combo(tab, "Style", "style", WINDOW_STYLES, item.style)
-        self._add_entry_disabled(tab, "Background", item.background or "")
+        self._add_image_combo(tab, "Background", "background", item.background)
 
         self._add_section(tab, "Colors")
         self._add_color(tab, "Forecolor", "forecolor", item.forecolor)
@@ -484,6 +510,11 @@ class PropertiesPanel(Frame):
         item.autowrapped = self._get_bool("autowrapped")
 
         item.style = self._get_combo_int("style", WINDOW_STYLES)
+        bg = self._get_str("background")
+        item.background = bg if bg and bg != "(none)" else None
+        # Auto-set style to SHADER when an image is selected
+        if item.background and item.style in (None, 0):
+            item.style = 3  # WINDOW_STYLE_SHADER
         item.forecolor = self._get_color("forecolor")
         item.backcolor = self._get_color("backcolor")
 
