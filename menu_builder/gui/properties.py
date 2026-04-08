@@ -444,6 +444,15 @@ class PropertiesPanel(Frame):
         if self.on_property_changed:
             self.on_property_changed()
 
+    def _set_combo_display(self, key: str, options: list[tuple[int, str]], value: int):
+        """Set a combo var to the display name for a value, suppressing events."""
+        for val, name in options:
+            if val == value:
+                self._suppress_events = True
+                self._set_var(key, name)
+                self._suppress_events = False
+                return
+
     def _get_str(self, key: str) -> str:
         var = self._vars.get(key)
         return var.get() if var else ""
@@ -513,8 +522,13 @@ class PropertiesPanel(Frame):
         bg = self._get_str("background")
         item.background = bg if bg and bg != "(none)" else None
         # Auto-set style to SHADER when an image is selected
-        if item.background and item.style in (None, 0):
+        if item.background and item.style != 3:
             item.style = 3  # WINDOW_STYLE_SHADER
+            self._set_combo_display("style", WINDOW_STYLES, 3)
+        # Clear background when style is not SHADER
+        if item.style != 3 and item.background:
+            item.background = None
+            self._set_var("background", "(none)")
         item.forecolor = self._get_color("forecolor")
         item.backcolor = self._get_color("backcolor")
 
