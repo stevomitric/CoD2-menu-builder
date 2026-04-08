@@ -184,6 +184,7 @@ class App(tk.Tk):
         tools_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Tools", menu=tools_menu)
         tools_menu.add_command(label="Font Editor...", command=self._open_font_editor)
+        tools_menu.add_command(label="Image Assets...", command=self._open_image_assets)
 
         # Keybindings
         self.bind_all("<Control-n>", lambda e: self._file_new())
@@ -443,6 +444,10 @@ class App(tk.Tk):
     def _open_font_editor(self):
         from menu_builder.gui.font_editor import FontEditor
         FontEditor(self)
+
+    def _open_image_assets(self):
+        from menu_builder.gui.image_assets import ImageAssets
+        ImageAssets(self)
 
     def _on_tab_changed(self, event):
         """Refresh code preview when switching to the code tab."""
