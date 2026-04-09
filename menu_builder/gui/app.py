@@ -15,6 +15,7 @@ from menu_builder.gui.canvas import MenuCanvas
 from menu_builder.gui.tree import MenuTree
 from menu_builder.gui.properties import PropertiesPanel
 from menu_builder.gui.code_preview import CodePreview
+from menu_builder.gui.rendered_view import RenderedView
 
 
 # Item types available in the Add Item menu
@@ -86,14 +87,21 @@ class App(tk.Tk):
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Tab 2: Textual Viewer
+        # Tab 2: Rendered View
+        rendered_frame = Frame(self.notebook)
+        self.notebook.add(rendered_frame, text="  Rendered  ")
+
+        self.rendered_view = RenderedView(rendered_frame)
+        self.rendered_view.pack(fill=tk.BOTH, expand=True)
+
+        # Tab 3: Textual Viewer
         code_frame = Frame(self.notebook)
         self.notebook.add(code_frame, text="  Textual Viewer  ")
 
         self.code_preview = CodePreview(code_frame)
         self.code_preview.pack(fill=tk.BOTH, expand=True)
 
-        # Update code when switching to code tab
+        # Update on tab switch
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
         # Right: tree + properties (vertical split) — narrower, fixed initial width
@@ -450,9 +458,11 @@ class App(tk.Tk):
         ImageAssets(self)
 
     def _on_tab_changed(self, event):
-        """Refresh code preview when switching to the code tab."""
+        """Refresh content when switching tabs."""
         current = self.notebook.index(self.notebook.select())
-        if current == 1:  # Code tab
+        if current == 1:  # Rendered tab
+            self._refresh_rendered()
+        elif current == 2:  # Code tab
             self._refresh_code()
             self.code_preview.highlight_item(self.selected_item)
 
@@ -484,11 +494,14 @@ class App(tk.Tk):
         text = serialize(self.menu_file)
         self.code_preview.set_text(text)
 
+    def _refresh_rendered(self):
+        self.rendered_view.load(self._current_menu())
+
     def _highlight_code_item(self):
         """Update code preview highlight if the code tab is visible."""
         try:
             current = self.notebook.index(self.notebook.select())
-            if current == 1:
+            if current == 2:  # Code tab is now index 2
                 self.code_preview.highlight_item(self.selected_item)
         except Exception:
             pass
