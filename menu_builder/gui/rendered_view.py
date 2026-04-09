@@ -45,7 +45,8 @@ class _FontAtlas:
         self.atlas_photo: tk.PhotoImage | None = None
         self.atlas_w = 0
         self.atlas_h = 0
-        self._glyph_cache: dict[tuple, tk.PhotoImage] = {}
+        self._master = master
+        self._glyph_cache: dict[int, tk.PhotoImage] = {}
 
         font_path = self._find_font(font_name)
         if not font_path:
@@ -118,7 +119,7 @@ class _FontAtlas:
             return None
 
         try:
-            crop = tk.PhotoImage(width=w, height=h, master=self.atlas_photo._root())
+            crop = tk.PhotoImage(width=w, height=h, master=self._master)
             crop.tk.call(crop, "copy", self.atlas_photo, "-from", x0, y0, x1, y1)
             self._glyph_cache[letter] = crop
             return crop
@@ -320,26 +321,52 @@ class RenderedView(Frame):
             pass
 
     def _draw_text(self, item: ItemDef, x0: float, y0: float, x1: float, y1: float):
-        """Render text using bitmap font glyphs."""
+        """Render text using bitmap font glyphs, with tkinter fallback."""
         text = item.text
         if text.startswith("@"):
             text = text[1:]
-
-        atlas = self._get_font_atlas(item.textfont)
-        if atlas is None:
-            # Fallback: tkinter text
-            tc = _color_to_hex(item.forecolor)
-            cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-            self.canvas.create_text(
-                cx, cy, text=text, fill=tc,
-                font=("TkDefaultFont", max(8, int(10 * self._scale))),
-                anchor=tk.CENTER,
-            )
+        if not text:
             return
 
-        # Calculate text scale
-        base_scale = (item.textscale or 0.25) / 0.25  # normalize to 0.25 = 1x
+        tc = _color_to_hex(item.forecolor)
+
+        atlas = self._get_font_atlas(item.textfont)
+
+        # Try bitmap font rendering
+        if atlas is not None:
+            rendered = self._draw_text_bitmap(text, item, atlas, x0, y0, x1, y1)
+            if rendered:
+                return
+
+        # Fallback: tkinter text (always works)
+        align = item.textalign
+        padding = 4 * self._scale
+        if align == 0:  # LEFT
+            tx = x0 + padding
+            anchor = tk.W
+        elif align == 2:  # RIGHT
+            tx = x1 - padding
+            anchor = tk.E
+        else:  # CENTER
+            tx = (x0 + x1) / 2
+            anchor = tk.CENTER
+
+        cy = (y0 + y1) / 2
+        font_size = max(8, int(10 * self._scale * ((item.textscale or 0.25) / 0.25)))
+        self.canvas.create_text(
+            tx, cy, text=text, fill=tc,
+            font=("TkDefaultFont", font_size),
+            anchor=anchor,
+        )
+
+    def _draw_text_bitmap(
+        self, text: str, item: ItemDef, atlas: _FontAtlas,
+        x0: float, y0: float, x1: float, y1: float,
+    ) -> bool:
+        """Try to render text with bitmap glyphs. Returns True if successful."""
+        base_scale = (item.textscale or 0.25) / 0.25
         glyph_scale = self._scale * base_scale
+        zoom = max(1, int(round(glyph_scale)))
 
         # Calculate total text width for alignment
         total_w = 0.0
@@ -350,17 +377,18 @@ class RenderedView(Frame):
 
         # Alignment
         align = item.textalign
+        padding = 4 * self._scale
         if align == 0:  # LEFT
-            pen_x = x0 + 4 * self._scale
+            pen_x = x0 + padding
         elif align == 2:  # RIGHT
-            pen_x = x1 - total_w - 4 * self._scale
+            pen_x = x1 - total_w - padding
         else:  # CENTER
             pen_x = (x0 + x1) / 2 - total_w / 2
 
-        # Baseline Y (center text vertically in item)
+        # Baseline Y — center vertically
         pen_y = (y0 + y1) / 2
 
-        # Render each glyph
+        any_rendered = False
         for ch in text:
             code = ord(ch)
             g = atlas.glyphs.get(code)
@@ -368,23 +396,19 @@ class RenderedView(Frame):
                 pen_x += atlas.pixel_height * 0.4 * glyph_scale
                 continue
 
-            glyph_img = atlas.get_glyph_image(code)
-            if glyph_img and g["pixelWidth"] > 0:
-                # Scale the glyph
-                zoom = max(1, int(round(glyph_scale)))
-                if zoom > 1:
+            if g["pixelWidth"] > 0:
+                glyph_img = atlas.get_glyph_image(code)
+                if glyph_img:
                     try:
-                        scaled = glyph_img.zoom(zoom, zoom)
+                        scaled = glyph_img.zoom(zoom, zoom) if zoom > 1 else glyph_img
+                        self._render_images.append(scaled)
+                        gx = pen_x + g["x0"] * glyph_scale
+                        gy = pen_y + g["y0"] * glyph_scale
+                        self.canvas.create_image(gx, gy, image=scaled, anchor=tk.NW)
+                        any_rendered = True
                     except Exception:
-                        scaled = glyph_img
-                else:
-                    scaled = glyph_img
-
-                self._render_images.append(scaled)
-
-                # Position: pen + bearing
-                gx = pen_x + g["x0"] * glyph_scale
-                gy = pen_y + g["y0"] * glyph_scale
-                self.canvas.create_image(gx, gy, image=scaled, anchor=tk.NW)
+                        pass
 
             pen_x += g["dx"] * glyph_scale
+
+        return any_rendered
