@@ -339,22 +339,24 @@ class RenderedView(Frame):
                 return
 
         # Fallback: tkinter text (always works)
-        align = item.textalign
-        padding = 4 * self._scale
-        if align == 0:  # LEFT
-            tx = x0 + padding
-            anchor = tk.W
-        elif align == 2:  # RIGHT
-            tx = x1 - padding
-            anchor = tk.E
-        else:  # CENTER
-            tx = (x0 + x1) / 2
-            anchor = tk.CENTER
+        # CoD2 text positioning: rect top-left is anchor, text draws above
+        ax = x0 + (item.textalignx or 0) * self._scale
+        ay = y0 + (item.textaligny or 0) * self._scale
 
-        cy = (y0 + y1) / 2
+        align = item.textalign
+        if align == 0:  # LEFT
+            tx = ax
+            anchor = tk.SW
+        elif align == 2:  # RIGHT
+            tx = ax
+            anchor = tk.SE
+        else:  # CENTER
+            tx = ax
+            anchor = tk.S
+
         font_size = max(8, int(10 * self._scale * ((item.textscale or 0.25) / 0.25)))
         self.canvas.create_text(
-            tx, cy, text=text, fill=tc,
+            tx, ay, text=text, fill=tc,
             font=("TkDefaultFont", font_size),
             anchor=anchor,
         )
@@ -375,18 +377,22 @@ class RenderedView(Frame):
             if g:
                 total_w += g["dx"] * glyph_scale
 
-        # Alignment
-        align = item.textalign
-        padding = 4 * self._scale
-        if align == 0:  # LEFT
-            pen_x = x0 + padding
-        elif align == 2:  # RIGHT
-            pen_x = x1 - total_w - padding
-        else:  # CENTER
-            pen_x = (x0 + x1) / 2 - total_w / 2
+        # CoD2 text positioning: anchor = rect top-left + textalign offsets
+        # Text draws ABOVE the anchor Y, glyph y0 is negative (above baseline)
+        ax = x0 + (item.textalignx or 0) * self._scale
+        ay = y0 + (item.textaligny or 0) * self._scale
 
-        # Baseline Y — center vertically
-        pen_y = (y0 + y1) / 2
+        align = item.textalign
+        if align == 0:  # LEFT — pen starts at anchor
+            pen_x = ax
+        elif align == 2:  # RIGHT — text ends at anchor
+            pen_x = ax - total_w
+        else:  # CENTER — anchor is center of text
+            pen_x = ax - total_w / 2
+
+        # Baseline Y — glyphs use y0 (negative = above baseline)
+        # ay is the baseline, glyphs draw above it
+        pen_y = ay
 
         any_rendered = False
         for ch in text:

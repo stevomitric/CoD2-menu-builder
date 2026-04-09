@@ -301,23 +301,26 @@ class MenuCanvas(Frame):
             else:
                 font_size = max(8, int(10 * self._scale))
 
-            # Text alignment: 0=LEFT, 1=CENTER, 2=RIGHT
-            align = item.textalign
-            padding = 4 * self._scale
-            if align == 0:  # LEFT
-                tx = x0 + padding
-                anchor = tk.W
-            elif align == 2:  # RIGHT
-                tx = x1 - padding
-                anchor = tk.E
-            else:  # CENTER (default)
-                tx = (x0 + x1) / 2
-                anchor = tk.CENTER
+            # CoD2 text positioning: rect top-left is the anchor point.
+            # Text draws ABOVE that point (bottom of text at anchor Y).
+            # textalignx/textaligny offset from rect top-left.
+            ax = x0 + (item.textalignx or 0) * self._scale
+            ay = y0 + (item.textaligny or 0) * self._scale
 
-            cy = (y0 + y1) / 2
+            align = item.textalign
+            if align == 0:  # LEFT — text starts at anchor, extends right
+                tx = ax
+                anchor = tk.SW
+            elif align == 2:  # RIGHT — text ends at anchor, extends left
+                tx = ax
+                anchor = tk.SE
+            else:  # CENTER — anchor is horizontal center of text
+                tx = ax
+                anchor = tk.S
+
             wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
             text_id = self.canvas.create_text(
-                tx, cy, text=label, fill=tc,
+                tx, ay, text=label, fill=tc,
                 font=("TkDefaultFont", font_size),
                 anchor=anchor,
                 width=wrap_width,
