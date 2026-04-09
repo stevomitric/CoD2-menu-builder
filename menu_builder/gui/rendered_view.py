@@ -234,37 +234,33 @@ class RenderedView(Frame):
             self._draw_item(item)
 
     def _draw_background(self):
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+
         if self._bg_photo is None:
-            # Fallback: solid dark
-            x0, y0 = self._to_screen(0, 0)
-            x1, y1 = self._to_screen(CANVAS_W, CANVAS_H)
-            self.canvas.create_rectangle(x0, y0, x1, y1, fill="#1a1a1a", outline="")
+            self.canvas.create_rectangle(0, 0, cw, ch, fill="#1a1a1a", outline="")
             return
 
-        # Scale background to fit
         bg_w = self._bg_photo.width()
         bg_h = self._bg_photo.height()
-        target_w = int(CANVAS_W * self._scale)
-        target_h = int(CANVAS_H * self._scale)
 
-        # Use subsample for shrinking
-        zoom_x = max(1, target_w // bg_w) if target_w >= bg_w else 1
-        zoom_y = max(1, target_h // bg_h) if target_h >= bg_h else 1
-        sub_x = max(1, bg_w // target_w) if target_w < bg_w else 1
-        sub_y = max(1, bg_h // target_h) if target_h < bg_h else 1
+        # Scale to cover the entire canvas (may crop, never letterbox)
+        scale_x = cw / bg_w
+        scale_y = ch / bg_h
+        cover_scale = max(scale_x, scale_y)
 
         try:
-            scaled = self._bg_photo
-            if sub_x > 1 or sub_y > 1:
-                scaled = self._bg_photo.subsample(sub_x, sub_y)
-            elif zoom_x > 1 or zoom_y > 1:
-                scaled = self._bg_photo.zoom(zoom_x, zoom_y)
+            if cover_scale >= 1:
+                zoom = max(1, int(cover_scale + 0.99))
+                scaled = self._bg_photo.zoom(zoom, zoom)
+            else:
+                sub = max(1, int(1 / cover_scale))
+                scaled = self._bg_photo.subsample(sub, sub)
+
             self._bg_scaled = scaled
-            cx = self._offset_x + target_w / 2
-            cy = self._offset_y + target_h / 2
-            self.canvas.create_image(cx, cy, image=scaled, anchor=tk.CENTER)
+            self.canvas.create_image(cw // 2, ch // 2, image=scaled, anchor=tk.CENTER)
         except Exception:
-            pass
+            self.canvas.create_rectangle(0, 0, cw, ch, fill="#1a1a1a", outline="")
 
     def _draw_item(self, item: ItemDef):
         r = item.rect
