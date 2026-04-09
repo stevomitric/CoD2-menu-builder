@@ -344,15 +344,15 @@ class RenderedView(Frame):
         ay = y0 + (item.textaligny or 0) * self._scale
 
         align = item.textalign
-        if align == 0:  # LEFT
+        if align == 1:  # CENTER
             tx = ax
-            anchor = tk.SW
+            anchor = tk.S
         elif align == 2:  # RIGHT
             tx = ax
             anchor = tk.SE
-        else:  # CENTER
+        else:  # LEFT (default)
             tx = ax
-            anchor = tk.S
+            anchor = tk.SW
 
         font_size = max(8, int(10 * self._scale * ((item.textscale or 0.25) / 0.25)))
         self.canvas.create_text(
@@ -383,12 +383,12 @@ class RenderedView(Frame):
         ay = y0 + (item.textaligny or 0) * self._scale
 
         align = item.textalign
-        if align == 0:  # LEFT — pen starts at anchor
-            pen_x = ax
+        if align == 1:  # CENTER — anchor is center of text
+            pen_x = ax - total_w / 2
         elif align == 2:  # RIGHT — text ends at anchor
             pen_x = ax - total_w
-        else:  # CENTER — anchor is center of text
-            pen_x = ax - total_w / 2
+        else:  # LEFT (default) — pen starts at anchor
+            pen_x = ax
 
         # Baseline Y — glyphs use y0 (negative = above baseline)
         # ay is the baseline, glyphs draw above it

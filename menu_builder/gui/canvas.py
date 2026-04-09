@@ -308,15 +308,15 @@ class MenuCanvas(Frame):
             ay = y0 + (item.textaligny or 0) * self._scale
 
             align = item.textalign
-            if align == 0:  # LEFT — text starts at anchor, extends right
+            if align == 1:  # CENTER — anchor is horizontal center of text
                 tx = ax
-                anchor = tk.SW
+                anchor = tk.S
             elif align == 2:  # RIGHT — text ends at anchor, extends left
                 tx = ax
                 anchor = tk.SE
-            else:  # CENTER — anchor is horizontal center of text
+            else:  # LEFT (default) — text starts at anchor, extends right
                 tx = ax
-                anchor = tk.S
+                anchor = tk.SW
 
             wrap_width = int(x1 - x0 - 4) if item.autowrapped else 0
             text_id = self.canvas.create_text(
