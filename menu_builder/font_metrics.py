@@ -33,15 +33,19 @@ class FontMetrics:
         self.pixel_height = pixel_height
         self.glyphs = glyphs  # letter code -> {"dx": int, "x0": int, "y0": int, "pixelWidth": int, "pixelHeight": int}
 
+    # Reference height — normalFont's pixelHeight. All fonts normalize to this.
+    _REF_HEIGHT = 16
+
     def text_width(self, text: str) -> float:
-        """Width in pixels at native size (no scaling)."""
+        """Width in normalized pixels (as if all fonts had the same height)."""
+        norm = self._REF_HEIGHT / self.pixel_height if self.pixel_height > 0 else 1.0
         w = 0.0
         for ch in text:
             g = self.glyphs.get(ord(ch))
             if g:
-                w += g["dx"]
+                w += g["dx"] * norm
             else:
-                w += self.pixel_height * 0.4
+                w += self._REF_HEIGHT * 0.4
         return w
 
     def measure(self, text: str, textscale: float | None = None) -> float:

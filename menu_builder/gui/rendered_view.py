@@ -366,7 +366,9 @@ class RenderedView(Frame):
     ) -> bool:
         """Try to render text with bitmap glyphs. Returns True if successful."""
         base_scale = (item.textscale or 0.25) / 0.25
-        glyph_scale = self._scale * base_scale
+        # Normalize so all fonts render at the same height (16px reference)
+        norm = 16.0 / atlas.pixel_height if atlas.pixel_height > 0 else 1.0
+        glyph_scale = self._scale * base_scale * norm
         zoom = max(1, int(round(glyph_scale)))
 
         # Calculate total text width for alignment
