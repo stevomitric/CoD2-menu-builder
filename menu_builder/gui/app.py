@@ -49,7 +49,7 @@ class App(tk.Tk):
 
         # --- Data ---
         self.menu_file = MenuFile(
-            menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480))]
+            menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480), blur_world=5.0)]
         )
         self.current_menu_index = 0
         self.selected_item: ItemDef | None = None
@@ -245,7 +245,7 @@ class App(tk.Tk):
 
     def _file_new(self):
         self.menu_file = MenuFile(
-            menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480))]
+            menu_defs=[MenuDef(name="new_menu", rect=Rect(0, 0, 640, 480), blur_world=5.0)]
         )
         self.current_menu_index = 0
         self.selected_item = None
@@ -294,7 +294,7 @@ class App(tk.Tk):
 
     def _add_menu(self):
         idx = len(self.menu_file.menu_defs) + 1
-        menu = MenuDef(name=f"menu_{idx}", rect=Rect(0, 0, 640, 480))
+        menu = MenuDef(name=f"menu_{idx}", rect=Rect(0, 0, 640, 480), blur_world=5.0)
         self.menu_file.menu_defs.append(menu)
         self.current_menu_index = len(self.menu_file.menu_defs) - 1
         self.selected_item = None
