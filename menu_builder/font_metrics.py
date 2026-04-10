@@ -33,25 +33,26 @@ class FontMetrics:
         self.pixel_height = pixel_height
         self.glyphs = glyphs  # letter code -> {"dx": int, "x0": int, "y0": int, "pixelWidth": int, "pixelHeight": int}
 
-    # Reference height — normalFont's pixelHeight. All fonts normalize to this.
-    _REF_HEIGHT = 16
+    def text_width(self, text: str, textscale: float = 0.25) -> float:
+        """Width in game pixels at the given textscale.
 
-    def text_width(self, text: str) -> float:
-        """Width in normalized pixels (as if all fonts had the same height)."""
-        norm = self._REF_HEIGHT / self.pixel_height if self.pixel_height > 0 else 1.0
+        CoD2 renders text height at textscale * 48 pixels.
+        Width scales proportionally from the font's native dx values.
+        """
+        # target_height = textscale * 48, scale from native pixelHeight
+        scale = (textscale * 48.0) / self.pixel_height if self.pixel_height > 0 else 1.0
         w = 0.0
         for ch in text:
             g = self.glyphs.get(ord(ch))
             if g:
-                w += g["dx"] * norm
+                w += g["dx"] * scale
             else:
-                w += self._REF_HEIGHT * 0.4
+                w += 4.0 * scale
         return w
 
     def measure(self, text: str, textscale: float | None = None) -> float:
         """Width in game pixels at the given textscale."""
-        scale = (textscale or 0.25) / 0.25  # normalize: 0.25 = 1x
-        return self.text_width(text) * scale
+        return self.text_width(text, textscale or 0.25)
 
 
 class FontMetricsCache:

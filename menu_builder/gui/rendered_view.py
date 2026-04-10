@@ -380,7 +380,7 @@ class RenderedView(Frame):
             tx = ax
             anchor = tk.SW
 
-        font_size = max(8, int(10 * self._scale * ((item.textscale or 0.25) / 0.25)))
+        font_size = max(6, int((item.textscale or 0.25) * 48 * self._scale))
         self.canvas.create_text(
             tx, ay, text=text, fill=tc,
             font=("TkDefaultFont", font_size),
@@ -392,10 +392,11 @@ class RenderedView(Frame):
         x0: float, y0: float, x1: float, y1: float,
     ) -> bool:
         """Try to render text with bitmap glyphs. Returns True if successful."""
-        base_scale = (item.textscale or 0.25) / 0.25
-        # Normalize so all fonts render at the same height (16px reference)
-        norm = 16.0 / atlas.pixel_height if atlas.pixel_height > 0 else 1.0
-        glyph_scale = self._scale * base_scale * norm
+        # CoD2 renders text at: height ≈ textscale * 48 pixels (in 640x480 space)
+        # Scale glyph from its native pixelHeight to that target height
+        textscale = item.textscale or 0.25
+        target_height = textscale * 48.0
+        glyph_scale = self._scale * target_height / atlas.pixel_height
 
         # Calculate total text width for alignment
         total_w = 0.0
