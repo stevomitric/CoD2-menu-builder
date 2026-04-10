@@ -319,6 +319,33 @@ class RenderedView(Frame):
         except Exception:
             pass
 
+    @staticmethod
+    def _scale_photo(img: tk.PhotoImage, scale: float) -> tk.PhotoImage:
+        """Scale a PhotoImage by a fractional factor using zoom+subsample."""
+        if scale >= 1.5:
+            z = max(1, int(round(scale)))
+            return img.zoom(z, z)
+        elif scale <= 0.75:
+            s = max(1, int(round(1.0 / scale)))
+            return img.subsample(s, s)
+        elif abs(scale - 1.0) < 0.05:
+            return img
+        else:
+            # Fractional scale: zoom up then subsample down
+            # Find integer ratio closest to scale: zoom_n / sub_n ≈ scale
+            best_z, best_s, best_err = 1, 1, abs(scale - 1.0)
+            for z in range(1, 8):
+                s = max(1, int(round(z / scale)))
+                err = abs(z / s - scale)
+                if err < best_err:
+                    best_z, best_s, best_err = z, s, err
+            result = img
+            if best_z > 1:
+                result = result.zoom(best_z, best_z)
+            if best_s > 1:
+                result = result.subsample(best_s, best_s)
+            return result
+
     def _draw_text(self, item: ItemDef, x0: float, y0: float, x1: float, y1: float):
         """Render text using bitmap font glyphs, with tkinter fallback."""
         text = item.text
@@ -369,7 +396,6 @@ class RenderedView(Frame):
         # Normalize so all fonts render at the same height (16px reference)
         norm = 16.0 / atlas.pixel_height if atlas.pixel_height > 0 else 1.0
         glyph_scale = self._scale * base_scale * norm
-        zoom = max(1, int(round(glyph_scale)))
 
         # Calculate total text width for alignment
         total_w = 0.0
@@ -407,13 +433,9 @@ class RenderedView(Frame):
                 glyph_img = atlas.get_glyph_image(code)
                 if glyph_img:
                     try:
-                        if zoom > 1:
-                            scaled = glyph_img.zoom(zoom, zoom)
-                        elif glyph_scale < 0.9:
-                            sub = max(1, int(round(1.0 / glyph_scale)))
-                            scaled = glyph_img.subsample(sub, sub)
-                        else:
-                            scaled = glyph_img
+                        # Scale glyph using zoom+subsample for fractional scaling
+                        # e.g. scale 0.89 = zoom(8)/subsample(9)
+                        scaled = self._scale_photo(glyph_img, glyph_scale)
                         self._render_images.append(scaled)
                         gx = pen_x + g["x0"] * glyph_scale
                         gy = pen_y + g["y0"] * glyph_scale
