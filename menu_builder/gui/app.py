@@ -328,6 +328,7 @@ class App(tk.Tk):
             backcolor=Color(0, 0, 0, 1),
             bordercolor=Color(0, 0, 0, 1),
             visible=True,
+            decoration=item_type == 0,  # TEXT items are decorative by default
         )
         menu.items.append(item)
         self.selected_item = item
