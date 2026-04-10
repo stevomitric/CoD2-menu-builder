@@ -400,14 +400,20 @@ class RenderedView(Frame):
             code = ord(ch)
             g = atlas.glyphs.get(code)
             if g is None:
-                pen_x += atlas.pixel_height * 0.4 * glyph_scale
+                pen_x += 16 * 0.4 * glyph_scale  # normalized fallback width
                 continue
 
             if g["pixelWidth"] > 0:
                 glyph_img = atlas.get_glyph_image(code)
                 if glyph_img:
                     try:
-                        scaled = glyph_img.zoom(zoom, zoom) if zoom > 1 else glyph_img
+                        if zoom > 1:
+                            scaled = glyph_img.zoom(zoom, zoom)
+                        elif glyph_scale < 0.9:
+                            sub = max(1, int(round(1.0 / glyph_scale)))
+                            scaled = glyph_img.subsample(sub, sub)
+                        else:
+                            scaled = glyph_img
                         self._render_images.append(scaled)
                         gx = pen_x + g["x0"] * glyph_scale
                         gy = pen_y + g["y0"] * glyph_scale
