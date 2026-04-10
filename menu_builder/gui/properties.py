@@ -47,40 +47,27 @@ TEXT_STYLES = [
 
 _TYPE_DISPLAY = {t: n for t, n in ITEM_TYPES}
 
-# Font directories
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-_DEFAULT_FONTS_DIR = _PROJECT_ROOT / "fonts" / "default"
-_CUSTOM_FONTS_DIR = _PROJECT_ROOT / "fonts" / "custom"
 
-# Standard CoD2 font constants mapped to file names
+# Available font constants for the font selector
+_FONT_OPTIONS = [
+    "UI_FONT_DEFAULT",
+    "UI_FONT_NORMAL",
+    "UI_FONT_BIG",
+    "UI_FONT_SMALL",
+    "UI_FONT_BOLD",
+    "UI_FONT_CONSOLE",
+]
+
+# Map constants to font file names (for metrics/rendering)
 _FONT_CONSTANTS = {
     "UI_FONT_DEFAULT": "smallFont",
     "UI_FONT_NORMAL": "normalFont",
     "UI_FONT_BIG": "bigFont",
+    "UI_FONT_SMALL": "smallFont",
+    "UI_FONT_BOLD": "boldFont",
+    "UI_FONT_CONSOLE": "consoleFont",
 }
-_FONT_NAME_TO_CONST = {v: k for k, v in _FONT_CONSTANTS.items()}
-
-
-def _list_available_fonts() -> list[str]:
-    """List available fonts for the font selector combo.
-
-    Returns display names like: UI_FONT_NORMAL, UI_FONT_BIG, [C] myFont
-    """
-    fonts = []
-    # Standard constants (always available)
-    fonts.extend(sorted(_FONT_CONSTANTS.keys()))
-    # Default fonts not covered by constants
-    if _DEFAULT_FONTS_DIR.is_dir():
-        for f in sorted(_DEFAULT_FONTS_DIR.iterdir()):
-            if f.is_file() and f.suffix not in (".tga", ".png") and not f.name.startswith("."):
-                if f.name not in _FONT_CONSTANTS.values():
-                    fonts.append(f.name)
-    # Custom fonts
-    if _CUSTOM_FONTS_DIR.is_dir():
-        for f in sorted(_CUSTOM_FONTS_DIR.iterdir()):
-            if f.is_file() and f.suffix not in (".tga", ".png") and not f.name.startswith("."):
-                fonts.append(f"[C] {f.name}")
-    return fonts
 
 
 _IMAGES_DIR = _PROJECT_ROOT / "images"
@@ -100,18 +87,16 @@ def _textfont_to_display(textfont: str | None) -> str:
     """Convert a textfont value to its display name."""
     if not textfont:
         return "UI_FONT_NORMAL"
-    if textfont in _FONT_CONSTANTS:
+    if textfont in _FONT_OPTIONS:
         return textfont
-    return textfont
+    return "UI_FONT_NORMAL"
 
 
 def _display_to_textfont(display: str) -> str | None:
     """Convert a display name back to a textfont value."""
-    if display in _FONT_CONSTANTS:
+    if display in _FONT_OPTIONS:
         return display
-    if display.startswith("[C] "):
-        return display[4:]
-    return display if display else None
+    return None
 
 
 def _type_display_name(type_id: int | None) -> str:
@@ -279,9 +264,8 @@ class PropertiesPanel(Frame):
         frame = Frame(parent)
         frame.pack(fill=tk.X, padx=5, pady=1)
         Label(frame, text=label, width=12).pack(side=tk.LEFT)
-        fonts = _list_available_fonts()
         var = tk.StringVar(value=_textfont_to_display(current))
-        Combobox(frame, textvariable=var, values=fonts, state="readonly", width=20).pack(
+        Combobox(frame, textvariable=var, values=_FONT_OPTIONS, state="readonly", width=20).pack(
             side=tk.LEFT, fill=tk.X, expand=True
         )
         var.trace_add("write", lambda *_: self._on_change())

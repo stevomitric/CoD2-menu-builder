@@ -23,6 +23,9 @@ _FONT_MAP = {
     "UI_FONT_DEFAULT": "smallFont",
     "UI_FONT_NORMAL": "normalFont",
     "UI_FONT_BIG": "bigFont",
+    "UI_FONT_SMALL": "smallFont",
+    "UI_FONT_BOLD": "boldFont",
+    "UI_FONT_CONSOLE": "consoleFont",
     None: "normalFont",
 }
 
